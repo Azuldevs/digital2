@@ -1,0 +1,29 @@
+body {
+  font-family: sans-serif;
+  background-color: #eef;
+  text-align: center;
+}
+
+.container {
+  max-width: 600px;
+  margin: auto;
+  padding: 30px;
+  background-color: white;
+  margin-top: 60px;
+  border-radius: 8px;
+  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+}
+
+#choices button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  margin: 10px auto;
+  font-size: 16px;
+}
+
+#next-button {
+  margin-top: 20px;
+  padding: 10px 20px;
+  font-size: 16px;
+}
