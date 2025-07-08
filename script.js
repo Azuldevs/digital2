@@ -1,4 +1,4 @@
-// クイズアプリ JavaScript（バグ修正版）
+// クイズアプリ JavaScript（完全版）
 
 // クイズデータ
 const quizData = [
@@ -61,6 +61,36 @@ const quizData = [
     choices: ["徳川家茂", "徳川慶喜", "徳川家定", "徳川家慶"],
     answer: 1,
     difficulty: "難しい",
+  },
+  {
+    question: "日本の三大夜景都市は？",
+    choices: ["函館・横浜・神戸", "札幌・東京・大阪", "函館・神戸・長崎", "東京・横浜・神戸"],
+    answer: 2,
+    difficulty: "難しい",
+  },
+  {
+    question: "日本で最も深い湖は？",
+    choices: ["琵琶湖", "田沢湖", "十和田湖", "中禅寺湖", "洞爺湖"],
+    answer: 1,
+    difficulty: "普通",
+  },
+  {
+    question: "四国の県はいくつある？",
+    choices: ["3つ", "4つ", "5つ", "6つ"],
+    answer: 1,
+    difficulty: "易しい",
+  },
+  {
+    question: "日本の伝統的な数の数え方で「ひとつ、ふたつ、みっつ」の次は？",
+    choices: ["よっつ", "よんつ", "しっつ", "よつ"],
+    answer: 0,
+    difficulty: "普通",
+  },
+  {
+    question: "日本で最も古い現存する木造建築は？",
+    choices: ["法隆寺", "東大寺", "清水寺", "金閣寺", "銀閣寺", "平等院"],
+    answer: 0,
+    difficulty: "難しい",
   }
 ];
 
@@ -113,6 +143,25 @@ const difficultyClasses = {
   "難しい": "bg-danger"
 };
 
+// ランクの判定と色付け
+function getRankInfo(percentage) {
+  if (percentage >= 90) return { rank: "S", class: "bg-primary" };
+  if (percentage >= 80) return { rank: "A", class: "bg-success" };
+  if (percentage >= 70) return { rank: "B", class: "bg-info" };
+  if (percentage >= 60) return { rank: "C", class: "bg-warning" };
+  return { rank: "D", class: "bg-danger" };
+}
+
+// 配列シャッフル関数
+function shuffleArray(array) {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 // 初期化
 document.addEventListener('DOMContentLoaded', function() {
   updateRankingList();
@@ -154,7 +203,7 @@ function handleStart() {
 
 // お任せモード押下処理
 function handleRandomMode() {
-  filteredQuiz = shuffleArray(quizData);
+  filteredQuiz = shuffleArray([...quizData]);
   startQuiz();
 }
 
@@ -190,11 +239,12 @@ function startQuiz() {
   showQuestion();
 }
 
-// UIリセット（バグ修正：不足していた関数を追加）
+// UIリセット
 function resetQuizUI() {
   resultElem.textContent = "";
   resultElem.className = "text-center fs-5 fw-semibold";
   nextBtn.style.display = "none";
+  answered = false;
   
   // タイマーをクリア
   if (timerInterval) {
@@ -218,10 +268,198 @@ function showQuestion() {
   difficultyElem.className = `badge ${difficultyClasses[currentQuestion.difficulty] || "bg-secondary"}`;
   difficultyElem.style.backgroundColor = difficultyColors[currentQuestion.difficulty] || "#6c757d";
 
-  // 選択肢表示
+  // 選択肢表示（任意の数の選択肢に対応）
   choicesElem.innerHTML = "";
   currentQuestion.choices.forEach((choice, idx) => {
     const btn = document.createElement("button");
     btn.type = "button";
     btn.className = "btn btn-outline-danger";
-    btn.textContent = choice
+    btn.textContent = choice;
+    btn.setAttribute("data-index", idx);
+    btn.addEventListener("click", () => handleAnswer(idx));
+    choicesElem.appendChild(btn);
+  });
+
+  // タイマー開始
+  startTimer();
+}
+
+// 回答処理
+function handleAnswer(selectedIndex) {
+  if (answered) return;
+
+  answered = true;
+  clearInterval(timerInterval);
+
+  const buttons = choicesElem.querySelectorAll("button");
+  const correctIndex = currentQuestion.answer;
+
+  // 全ボタンを無効化
+  buttons.forEach(btn => {
+    btn.disabled = true;
+  });
+
+  // 正解ボタンを緑に
+  buttons[correctIndex].classList.remove("btn-outline-danger");
+  buttons[correctIndex].classList.add("btn-success");
+
+  // 選択したボタンの処理
+  if (selectedIndex === correctIndex) {
+    // 正解
+    correctCount++;
+    resultElem.textContent = "正解！";
+    resultElem.classList.add("text-success");
+  } else {
+    // 不正解
+    buttons[selectedIndex].classList.remove("btn-outline-danger");
+    buttons[selectedIndex].classList.add("btn-danger");
+    resultElem.textContent = `不正解。正解は「${currentQuestion.choices[correctIndex]}」でした。`;
+    resultElem.classList.add("text-danger");
+  }
+
+  // 次へボタンを表示
+  nextBtn.style.display = "block";
+}
+
+// タイマー開始
+function startTimer() {
+  currentTime = timeLimit;
+  updateTimerDisplay();
+
+  timerInterval = setInterval(() => {
+    currentTime--;
+    updateTimerDisplay();
+
+    if (currentTime <= 0) {
+      clearInterval(timerInterval);
+      handleTimeUp();
+    }
+  }, 1000);
+}
+
+// タイマー表示更新
+function updateTimerDisplay() {
+  const percentage = (currentTime / timeLimit) * 100;
+  timerBarElem.style.width = `${percentage}%`;
+  timerTextElem.textContent = currentTime;
+  
+  // 残り時間に応じて色を変更
+  if (currentTime <= 5) {
+    timerBarElem.classList.remove("bg-success", "bg-warning");
+    timerBarElem.classList.add("bg-danger");
+  } else if (currentTime <= 10) {
+    timerBarElem.classList.remove("bg-success", "bg-danger");
+    timerBarElem.classList.add("bg-warning");
+  } else {
+    timerBarElem.classList.remove("bg-warning", "bg-danger");
+    timerBarElem.classList.add("bg-success");
+  }
+}
+
+// 時間切れ処理
+function handleTimeUp() {
+  if (answered) return;
+
+  answered = true;
+  const buttons = choicesElem.querySelectorAll("button");
+  const correctIndex = currentQuestion.answer;
+
+  // 全ボタンを無効化
+  buttons.forEach(btn => {
+    btn.disabled = true;
+  });
+
+  // 正解ボタンを緑に
+  buttons[correctIndex].classList.remove("btn-outline-danger");
+  buttons[correctIndex].classList.add("btn-success");
+
+  resultElem.textContent = `時間切れ！正解は「${currentQuestion.choices[correctIndex]}」でした。`;
+  resultElem.classList.add("text-danger");
+
+  // 次へボタンを表示
+  nextBtn.style.display = "block";
+}
+
+// 最終結果表示
+function showFinalResult() {
+  const percentage = Math.round((correctCount / filteredQuiz.length) * 100);
+  const rankInfo = getRankInfo(percentage);
+
+  // 結果をランキングに追加
+  const result = {
+    score: `${correctCount}/${filteredQuiz.length}`,
+    percentage: percentage,
+    rank: rankInfo.rank,
+    timestamp: new Date().toLocaleString('ja-JP')
+  };
+
+  rankingData.unshift(result);
+  if (rankingData.length > 5) {
+    rankingData = rankingData.slice(0, 5);
+  }
+
+  // モーダルに結果を表示
+  finalScoreElem.textContent = `${correctCount}/${filteredQuiz.length}問正解`;
+  finalPercentElem.textContent = percentage;
+  finalRankElem.textContent = rankInfo.rank;
+  finalRankElem.className = `badge ${rankInfo.class}`;
+
+  // ランキングリストを更新
+  updateRankingList();
+  updateModalRankingList();
+
+  // モーダルを表示
+  resultModal.show();
+}
+
+// ランキングリスト更新
+function updateRankingList() {
+  rankingListElem.innerHTML = "";
+  
+  if (rankingData.length === 0) {
+    const li = document.createElement("li");
+    li.className = "list-group-item text-center";
+    li.textContent = "まだデータがありません";
+    rankingListElem.appendChild(li);
+    return;
+  }
+
+  rankingData.forEach((data, index) => {
+    const li = document.createElement("li");
+    li.className = "list-group-item d-flex justify-content-between align-items-center";
+    
+    const rankInfo = getRankInfo(data.percentage);
+    li.innerHTML = `
+      <span>${index + 1}位: ${data.score} (${data.percentage}%)</span>
+      <span class="badge ${rankInfo.class}">${data.rank}</span>
+    `;
+    
+    rankingListElem.appendChild(li);
+  });
+}
+
+// モーダル内ランキングリスト更新
+function updateModalRankingList() {
+  modalRankingListElem.innerHTML = "";
+  
+  if (rankingData.length === 0) {
+    const li = document.createElement("li");
+    li.className = "list-group-item text-center";
+    li.textContent = "まだデータがありません";
+    modalRankingListElem.appendChild(li);
+    return;
+  }
+
+  rankingData.forEach((data, index) => {
+    const li = document.createElement("li");
+    li.className = "list-group-item d-flex justify-content-between align-items-center";
+    
+    const rankInfo = getRankInfo(data.percentage);
+    li.innerHTML = `
+      <span>${index + 1}位: ${data.score} (${data.percentage}%)</span>
+      <span class="badge ${rankInfo.class}">${data.rank}</span>
+    `;
+    
+    modalRankingListElem.appendChild(li);
+  });
+}
