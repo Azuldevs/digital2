@@ -1,45 +1,101 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>第二級デジタル通信クイズ</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
-<style>
-  .bg-purple { background-color: #6f42c1 !important; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>第二級デジタル通信クイズ - ハブ付き完全版</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <style>
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+    main {
+      flex-grow: 1;
+    }
+  </style>
 </head>
-<body class="bg-light d-flex flex-column min-vh-100">
+<body class="bg-light">
 
-<main class="container my-5 flex-grow-1 d-flex flex-column justify-content-center">
-  <div class="card shadow-sm mx-auto" style="max-width: 480px;">
-    <div class="card-body p-4">
-      <h1 class="h4 text-center mb-4 fw-bold">第二級デジタル通信 クイズ</h1>
+<main class="container my-5">
+  <!-- ホーム画面 -->
+  <section id="home-screen" class="text-center">
+    <h1 class="mb-4 fw-bold">第二級デジタル通信クイズ - ホーム</h1>
 
-      <div class="d-flex justify-content-between align-items-center mb-3 small text-muted">
-        <div id="progress">問題 1 / 4</div>
-        <div><span id="difficulty" class="badge bg-secondary"></span></div>
-        <div class="d-flex align-items-center gap-2" style="width: 150px;">
-          <div class="progress flex-grow-1" style="height: 22px;">
-            <div id="timer-bar" class="progress-bar bg-success" role="progressbar" style="width: 100%;"></div>
-          </div>
-          <div id="timer-text" style="width: 30px;">30</div>
-        </div>
+    <div class="mb-3">
+      <label class="form-label fw-semibold">難易度を選択</label><br />
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="easy" value="易しい" checked />
+        <label class="form-check-label" for="easy">易しい</label>
       </div>
-
-      <p id="question-text" class="fs-5 fw-semibold mb-4"></p>
-
-      <div id="choices" class="d-grid gap-3 mb-3"></div>
-
-      <p id="result" class="text-center fs-5 fw-semibold"></p>
-
-      <div class="d-grid">
-        <button id="next-button" class="btn btn-primary" style="display:none;" onclick="loadQuestion()">次の問題へ</button>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="normal" value="普通" checked />
+        <label class="form-check-label" for="normal">普通</label>
+      </div>
+      <div class="form-check form-check-inline">
+        <input class="form-check-input" type="checkbox" id="hard" value="難しい" checked />
+        <label class="form-check-label" for="hard">難しい</label>
       </div>
     </div>
-  </div>
+
+    <div class="mb-3">
+      <label for="question-count" class="form-label fw-semibold">出題数を選択</label>
+      <select id="question-count" class="form-select w-auto mx-auto">
+        <option value="all" selected>全問</option>
+        <option value="1">1問</option>
+        <option value="2">2問</option>
+        <option value="3">3問</option>
+        <option value="4">4問</option>
+      </select>
+    </div>
+
+    <div class="d-flex justify-content-center gap-2">
+      <button id="start-btn" class="btn btn-primary">スタート</button>
+      <button id="random-btn" class="btn btn-secondary">お任せモード</button>
+    </div>
+  </section>
+
+  <!-- クイズ画面 -->
+  <section id="quiz-screen" class="d-none">
+    <div class="card shadow-sm mx-auto" style="max-width: 480px;">
+      <div class="card-body p-4">
+        <h1 class="h4 text-center mb-4 fw-bold">第二級デジタル通信 クイズ</h1>
+
+        <!-- 進捗・難易度・タイマー -->
+        <div class="d-flex justify-content-between align-items-center mb-3 small text-muted">
+          <div id="progress"></div>
+          <div>
+            <span id="difficulty" class="badge bg-secondary"></span>
+          </div>
+          <div style="width: 120px;">
+            <div class="progress" style="height: 22px;">
+              <div id="timer-bar" class="progress-bar bg-success" role="progressbar" style="width: 100%;">
+                <span id="timer-text"></span>秒
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 問題 -->
+        <p id="question-text" class="fs-5 fw-semibold mb-4"></p>
+
+        <!-- 選択肢 -->
+        <div id="choices" class="d-grid gap-3 mb-3"></div>
+
+        <!-- 結果表示 -->
+        <p id="result" class="text-center fs-5 fw-semibold"></p>
+
+        <!-- 次へボタン -->
+        <div class="d-grid">
+          <button id="next-button" class="btn btn-primary" style="display:none;">次の問題へ</button>
+        </div>
+      </div>
+    </div>
+  </section>
 </main>
 
+<!-- 結果画面用モーダル -->
 <div class="modal fade" id="resultModal" tabindex="-1" aria-labelledby="resultModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
@@ -56,7 +112,7 @@
         <ul id="ranking-list" class="list-group list-group-flush"></ul>
       </div>
       <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal" onclick="restartQuiz()">もう一度挑戦する</button>
+        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">もう一度挑戦する</button>
       </div>
     </div>
   </div>
@@ -64,230 +120,331 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-const quizData = [
-  {
-    question: "Q1. デジタル変調方式で最も雑音に強いのは？",
-    choices: ["ASK", "FSK", "PSK", "QAM"],
-    answer: 2,
-    difficulty: "普通"
-  },
-  {
-    question: "Q2. パリティビットの目的は？",
-    choices: ["圧縮", "同期", "誤り検出", "伝送速度向上"],
-    answer: 2,
-    difficulty: "易しい"
-  },
-  {
-    question: "Q3. 1バイトは何ビット？",
-    choices: ["4ビット", "8ビット", "16ビット", "32ビット", "64ビット"],
-    answer: 1,
-    difficulty: "易しい"
-  },
-  {
-    question: "Q4. QAMとは何の略？",
-    choices: [
-      "Quadrature Amplitude Modulation",
-      "Quick Access Mode",
-      "Quantum Analog Method",
-      "Quality Assurance Module"
-    ],
-    answer: 0,
-    difficulty: "難しい"
-  }
-];
+  // --- 問題データ ---
+  const quizData = [
+    {
+      question: "Q1. デジタル変調方式で最も雑音に強いのは？",
+      choices: ["ASK", "FSK", "PSK", "QAM"],
+      answer: 2,
+      difficulty: "普通"
+    },
+    {
+      question: "Q2. パリティビットの目的は？",
+      choices: ["圧縮", "同期", "誤り検出", "伝送速度向上"],
+      answer: 2,
+      difficulty: "易しい"
+    },
+    {
+      question: "Q3. 1バイトは何ビット？",
+      choices: ["4ビット", "8ビット", "16ビット", "32ビット", "64ビット"],
+      answer: 1,
+      difficulty: "易しい"
+    },
+    {
+      question: "Q4. QAMとは何の略？",
+      choices: [
+        "Quadrature Amplitude Modulation",
+        "Quick Access Mode",
+        "Quantum Analog Method",
+        "Quality Assurance Module"
+      ],
+      answer: 0,
+      difficulty: "難しい"
+    }
+  ];
 
-let remainingQuestions = [];
-let currentQuestion = null;
-let correctCount = 0;
-let questionIndex = 0;
-const totalCount = quizData.length;
-let answered = false;
-let timerInterval = null;
-const timeLimit = 30;
-let currentTime = timeLimit;
+  // --- 変数 ---
+  let remainingQuestions = [];
+  let currentQuestion = null;
+  let correctCount = 0;
+  let questionIndex = 0;
+  const timeLimit = 30;
+  let currentTime = timeLimit;
+  let timerInterval = null;
+  let answered = false;
 
-const modal = new bootstrap.Modal(document.getElementById('resultModal'));
+  const modalElem = document.getElementById('resultModal');
+  const modal = new bootstrap.Modal(modalElem);
 
-function startQuiz() {
-  remainingQuestions = [...quizData];
-  correctCount = 0;
-  questionIndex = 0;
-  loadQuestion();
-}
+  // DOM Elements
+  const homeScreen = document.getElementById('home-screen');
+  const quizScreen = document.getElementById('quiz-screen');
 
-function restartQuiz() {
-  startQuiz();
-}
+  // ボタン
+  const startBtn = document.getElementById('start-btn');
+  const randomBtn = document.getElementById('random-btn');
+  const nextBtn = document.getElementById('next-button');
 
-function loadQuestion() {
-  clearInterval(timerInterval);
-  document.getElementById("result").textContent = "";
-  document.getElementById("result").className = "";
-  document.getElementById("next-button").style.display = "none";
-  document.getElementById("choices").innerHTML = "";
+  // UI Elements
+  const progressElem = document.getElementById('progress');
+  const difficultyElem = document.getElementById('difficulty');
+  const questionTextElem = document.getElementById('question-text');
+  const choicesElem = document.getElementById('choices');
+  const resultElem = document.getElementById('result');
+  const timerBarElem = document.getElementById('timer-bar');
+  const timerTextElem = document.getElementById('timer-text');
 
-  if (remainingQuestions.length === 0) {
-    showFinalResult();
-    return;
-  }
+  // 結果モーダル要素
+  const finalScoreElem = document.getElementById('final-score');
+  const finalPercentElem = document.getElementById('final-percent');
+  const finalRankElem = document.getElementById('final-rank');
+  const rankingListElem = document.getElementById('ranking-list');
 
-  currentQuestion = remainingQuestions.shift();
-  questionIndex++;
-  answered = false;
-  currentTime = timeLimit;
+  // --- イベント設定 ---
 
-  document.getElementById("question-text").textContent = currentQuestion.question;
-  document.getElementById("progress").textContent = `問題 ${questionIndex} / ${totalCount}`;
-  const diff = document.getElementById("difficulty");
-  diff.textContent = currentQuestion.difficulty;
-  diff.className = "badge " + getDifficultyBadge(currentQuestion.difficulty);
+  startBtn.addEventListener('click', () => {
+    const selectedDifficulties = [...document.querySelectorAll('#home-screen input[type=checkbox]:checked')].map(input => input.value);
+    const countValue = document.getElementById('question-count').value;
 
-  currentQuestion.choices.forEach((choice, index) => {
-    const btn = document.createElement("button");
-    btn.className = "btn btn-outline-primary";
-    btn.textContent = choice;
-    btn.onclick = () => handleAnswer(index);
-    document.getElementById("choices").appendChild(btn);
+    let filtered = quizData.filter(q => selectedDifficulties.includes(q.difficulty));
+
+    if (countValue !== 'all') {
+      filtered = shuffleArray(filtered).slice(0, Number(countValue));
+    } else {
+      filtered = shuffleArray(filtered);
+    }
+
+    if (filtered.length === 0) {
+      alert("選択した条件に該当する問題がありません。");
+      return;
+    }
+
+    startQuiz(filtered);
   });
 
-  updateTimerDisplay();
-  startTimer();
-}
+  randomBtn.addEventListener('click', () => {
+    const shuffledAll = shuffleArray(quizData);
+    startQuiz(shuffledAll);
+  });
 
-function getDifficultyBadge(difficulty) {
-  switch(difficulty) {
-    case "易しい": return "bg-success";
-    case "普通": return "bg-warning text-dark";
-    case "難しい": return "bg-danger";
-    default: return "bg-secondary";
+  nextBtn.addEventListener('click', () => {
+    loadQuestion();
+  });
+
+  // モーダルが閉じたときホーム画面に戻る
+  modalElem.addEventListener('hidden.bs.modal', () => {
+    restartQuiz();
+  });
+
+  // --- 関数 ---
+
+  function startQuiz(questionSet) {
+    homeScreen.classList.add('d-none');
+    quizScreen.classList.remove('d-none');
+
+    remainingQuestions = [...questionSet];
+    correctCount = 0;
+    questionIndex = 0;
+    answered = false;
+
+    loadQuestion();
   }
-}
 
-function startTimer() {
-  timerInterval = setInterval(() => {
-    currentTime--;
+  function restartQuiz() {
+    quizScreen.classList.add('d-none');
+    homeScreen.classList.remove('d-none');
+    clearInterval(timerInterval);
+    resetQuizUI();
+    showRanking();
+  }
+
+  function loadQuestion() {
+    clearInterval(timerInterval);
+    resultElem.textContent = "";
+    resultElem.className = "";
+    nextBtn.style.display = "none";
+    choicesElem.innerHTML = "";
+
+    if (remainingQuestions.length === 0) {
+      showFinalResult();
+      return;
+    }
+
+    currentQuestion = remainingQuestions.shift();
+    questionIndex++;
+    answered = false;
+    currentTime = timeLimit;
+
+    progressElem.textContent = `問題 ${questionIndex} / ${questionIndex + remainingQuestions.length}`;
+    difficultyElem.textContent = currentQuestion.difficulty;
+    difficultyElem.className = "badge " + getDifficultyBadge(currentQuestion.difficulty);
+
+    questionTextElem.textContent = currentQuestion.question;
+
+    currentQuestion.choices.forEach((choice, index) => {
+      const btn = document.createElement("button");
+      btn.className = "btn btn-outline-primary";
+      btn.textContent = choice;
+      btn.onclick = () => handleAnswer(index);
+      choicesElem.appendChild(btn);
+    });
+
     updateTimerDisplay();
-    if (currentTime <= 0) {
-      clearInterval(timerInterval);
-      handleTimeout();
-    }
-  }, 1000);
-}
-
-function updateTimerDisplay() {
-  const percent = (currentTime / timeLimit) * 100;
-  const bar = document.getElementById("timer-bar");
-  bar.style.width = `${percent}%`;
-  document.getElementById("timer-text").textContent = currentTime;
-
-  bar.classList.remove("bg-success", "bg-warning", "bg-danger");
-  if (currentTime > 20) {
-    bar.classList.add("bg-success");
-  } else if (currentTime > 10) {
-    bar.classList.add("bg-warning");
-  } else {
-    bar.classList.add("bg-danger");
+    startTimer();
   }
-}
 
-function handleTimeout() {
-  if (answered) return;
-  answered = true;
-  showResult(false, "⌛ 時間切れ！不正解です。");
-}
-
-function handleAnswer(selectedIndex) {
-  if (answered) return;
-  answered = true;
-  clearInterval(timerInterval);
-
-  const isCorrect = selectedIndex === currentQuestion.answer;
-  showResult(isCorrect, isCorrect ? "✅ 正解！" : "❌ 不正解");
-}
-
-function showResult(isCorrect, message) {
-  const resultElem = document.getElementById("result");
-  resultElem.textContent = message;
-  resultElem.className = `text-center fs-5 fw-semibold ${isCorrect ? "text-success" : "text-danger"}`;
-
-  if (isCorrect) correctCount++;
-  document.getElementById("next-button").style.display = "block";
-
-  // ボタンの色付け・無効化
-  Array.from(document.getElementById("choices").children).forEach((btn, idx) => {
-    btn.disabled = true;
-    if (idx === currentQuestion.answer) {
-      btn.classList.remove("btn-outline-primary");
-      btn.classList.add("btn-success");
+  function getDifficultyBadge(diff) {
+    switch(diff) {
+      case "易しい": return "bg-success";
+      case "普通": return "bg-warning text-dark";
+      case "難しい": return "bg-danger";
+      default: return "bg-secondary";
     }
-    if (!isCorrect && idx === selectedIndex && idx !== currentQuestion.answer) {
-      btn.classList.remove("btn-outline-primary");
-      btn.classList.add("btn-danger");
-    }
-  });
-}
-
-function showFinalResult() {
-  const percent = Math.round((correctCount / totalCount) * 100);
-  const rank = getRank(percent);
-
-  document.getElementById("final-score").textContent = `正解数 ${correctCount} / ${totalCount} 問`;
-  document.getElementById("final-percent").textContent = percent;
-  const rankBadge = document.getElementById("final-rank");
-  rankBadge.textContent = rank;
-  rankBadge.className = "badge fs-5 " + getRankBadgeClass(rank);
-
-  saveRanking(percent, rank);
-  showRanking();
-
-  modal.show();
-}
-
-function getRank(percent) {
-  if (percent === 100) return "S";
-  if (percent >= 80) return "A";
-  if (percent >= 60) return "B";
-  if (percent >= 40) return "C";
-  return "D";
-}
-
-function getRankBadgeClass(rank) {
-  switch (rank) {
-    case "S": return "bg-purple text-white";
-    case "A": return "bg-success text-white";
-    case "B": return "bg-info text-dark";
-    case "C": return "bg-warning text-dark";
-    case "D": return "bg-danger text-white";
-    default: return "bg-secondary";
   }
-}
 
-function saveRanking(percent, rank) {
-  const key = "quizRanking";
-  const ranking = JSON.parse(localStorage.getItem(key) || "[]");
-  const date = new Date().toLocaleString();
-  ranking.unshift({ percent, rank, date });
-  while (ranking.length > 5) ranking.pop();
-  localStorage.setItem(key, JSON.stringify(ranking));
-}
+  function startTimer() {
+    timerInterval = setInterval(() => {
+      currentTime--;
+      updateTimerDisplay();
 
-function showRanking() {
-  const key = "quizRanking";
-  const ranking = JSON.parse(localStorage.getItem(key) || "[]");
-  const list = document.getElementById("ranking-list");
-  list.innerHTML = "";
-  ranking.forEach((r, i) => {
-    const li = document.createElement("li");
-    li.className = "list-group-item d-flex justify-content-between align-items-center";
-    li.innerHTML = `<span>${i + 1}. ${r.date}</span><span><span class="badge ${getRankBadgeClass(r.rank)} me-2">${r.rank}</span>${r.percent}%</span>`;
-    list.appendChild(li);
-  });
-}
+      if (currentTime <= 0) {
+        clearInterval(timerInterval);
+        handleTimeout();
+      }
+    }, 1000);
+  }
 
-window.onload = () => {
-  startQuiz();
+  function updateTimerDisplay() {
+    timerTextElem.textContent = currentTime;
+    const percent = (currentTime / timeLimit) * 100;
+    timerBarElem.style.width = percent + "%";
+
+    if (percent > 60) {
+      timerBarElem.className = "progress-bar bg-success";
+    } else if (percent > 30) {
+      timerBarElem.className = "progress-bar bg-warning";
+    } else {
+      timerBarElem.className = "progress-bar bg-danger";
+    }
+  }
+
+  function handleAnswer(selectedIndex) {
+    if (answered) return;
+    answered = true;
+    clearInterval(timerInterval);
+
+    const buttons = choicesElem.querySelectorAll("button");
+
+    buttons.forEach((btn, idx) => {
+      btn.disabled = true;
+      if (idx === currentQuestion.answer) {
+        btn.classList.remove("btn-outline-primary");
+        btn.classList.add("btn-success");
+      }
+      if (idx === selectedIndex && idx !== currentQuestion.answer) {
+        btn.classList.remove("btn-outline-primary");
+        btn.classList.add("btn-danger");
+      }
+    });
+
+    if (selectedIndex === currentQuestion.answer) {
+      correctCount++;
+      resultElem.textContent = "正解！";
+      resultElem.className = "text-success fw-bold text-center";
+    } else {
+      resultElem.textContent = `不正解。正解は「${currentQuestion.choices[currentQuestion.answer]}」です。`;
+      resultElem.className = "text-danger fw-bold text-center";
+    }
+
+    nextBtn.style.display = "block";
+  }
+
+  function handleTimeout() {
+    if (answered) return;
+    answered = true;
+
+    const buttons = choicesElem.querySelectorAll("button");
+    buttons.forEach((btn, idx) => {
+      btn.disabled = true;
+      if (idx === currentQuestion.answer) {
+        btn.classList.remove("btn-outline-primary");
+        btn.classList.add("btn-success");
+      }
+    });
+
+    resultElem.textContent = `時間切れ。正解は「${currentQuestion.choices[currentQuestion.answer]}」です。`;
+    resultElem.className = "text-danger fw-bold text-center";
+    nextBtn.style.display = "block";
+  }
+
+  function showFinalResult() {
+    clearInterval(timerInterval);
+    quizScreen.classList.add('d-none');
+
+    const total = questionIndex;
+    const percent = total ? Math.round((correctCount / total) * 100) : 0;
+    const rank = getRank(percent);
+
+    finalScoreElem.textContent = `正解数：${correctCount} / ${total}`;
+    finalPercentElem.textContent = percent;
+    finalRankElem.textContent = rank.text;
+    finalRankElem.className = "badge fs-5 " + rank.className;
+
+    saveRanking(percent);
+
+    updateRankingList();
+
+    modal.show();
+  }
+
+  function getRank(percent) {
+    if (percent === 100) return { text: "S", className: "bg-primary" };
+    if (percent >= 90) return { text: "A", className: "bg-success" };
+    if (percent >= 70) return { text: "B", className: "bg-info text-dark" };
+    if (percent >= 50) return { text: "C", className: "bg-warning text-dark" };
+    return { text: "D", className: "bg-danger" };
+  }
+
+  function saveRanking(percent) {
+    const key = "quizRanking";
+    let ranking = JSON.parse(localStorage.getItem(key)) || [];
+    ranking.unshift({ date: new Date().toISOString(), score: percent });
+    if (ranking.length > 5) ranking.pop();
+    localStorage.setItem(key, JSON.stringify(ranking));
+  }
+
+  function updateRankingList() {
+    const ranking = JSON.parse(localStorage.getItem("quizRanking")) || [];
+    rankingListElem.innerHTML = "";
+    if (ranking.length === 0) {
+      rankingListElem.innerHTML = "<li class='list-group-item'>まだランキングはありません。</li>";
+      return;
+    }
+    ranking.forEach((item, i) => {
+      const li = document.createElement("li");
+      li.className = "list-group-item d-flex justify-content-between";
+      li.textContent = `${i + 1}回目: ${new Date(item.date).toLocaleString()} `;
+      const span = document.createElement("span");
+      span.textContent = `得点: ${item.score}%`;
+      li.appendChild(span);
+      rankingListElem.appendChild(li);
+    });
+  }
+
+  function resetQuizUI() {
+    resultElem.textContent = "";
+    choicesElem.innerHTML = "";
+    nextBtn.style.display = "none";
+    progressElem.textContent = "";
+    difficultyElem.textContent = "";
+    questionTextElem.textContent = "";
+    timerBarElem.style.width = "100%";
+    timerTextElem.textContent = timeLimit;
+    timerBarElem.className = "progress-bar bg-success";
+  }
+
+  // 配列シャッフル
+  function shuffleArray(arr) {
+    return arr
+      .map(value => ({ value, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ value }) => value);
+  }
+
+  // 初回読み込み時にランキング更新
+  showRanking = updateRankingList;
   showRanking();
-};
 </script>
 </body>
 </html>
+
