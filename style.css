@@ -1,30 +1,69 @@
 body {
-  font-family: sans-serif;
-  background-color: #eef;
-  text-align: center;
+  background-color: #121212;
+  color: #f1f1f1;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-.container {
-  max-width: 600px;
-  margin: auto;
-  padding: 30px;
-  background-color: white;
-  margin-top: 60px;
-  border-radius: 8px;
-  box-shadow: 0 0 10px rgba(0,0,0,0.2);
+.card, .modal-content, .list-group-item {
+  background-color: #1e1e1e;
+  color: #f1f1f1;
 }
 
-#choices button {
-  display: block;
-  width: 100%;
-  padding: 10px;
-  margin: 10px auto;
-  font-size: 16px;
+.btn-danger, .btn-outline-danger {
+  background-color: #444;
+  border-color: #888;
+  color: #f1f1f1;
 }
 
+.btn-outline-danger:hover {
+  background-color: #66c0f4;
+  color: #000;
+}
 
-#next-button {
-  margin-top: 20px;
-  padding: 10px 20px;
-  font-size: 16px;
+.progress {
+  background-color: #333;
+}
+
+.progress-bar.bg-success {
+  background-color: #198754 !important;
+}
+
+.progress-bar.bg-warning {
+  background-color: #ffc107 !important;
+}
+
+.progress-bar.bg-danger {
+  background-color: #dc3545 !important;
+}
+
+.badge {
+  font-weight: 700;
+}
+
+.modal-header, .modal-footer {
+  border-color: #333;
+}
+
+.form-select, .form-check-input, .form-check-label, .form-control {
+  background-color: #2c2c2c;
+  color: #f1f1f1;
+  border-color: #444;
+}
+
+#timer-bar::after {
+  color: #fff;
+}
+
+#result {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.list-group-item {
+  background-color: #2c2c2c;
+}
+
+input[type="number"]::-webkit-inner-spin-button {
+  filter: invert(1);
 }
