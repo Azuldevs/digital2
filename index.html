@@ -3,45 +3,263 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>第二級デジタル通信クイズ - ハブ付き完全版</title>
+  <title>中トロ ~CHUTORO~</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
   <style>
     body {
       min-height: 100vh;
       display: flex;
       flex-direction: column;
+      background: #fff8f0;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
     main {
       flex-grow: 1;
     }
+    h1,h2 {
+      font-weight: 700;
+      color: #b43a31; /* 中トロっぽい色 */
+      text-shadow: 1px 1px 0 #fce8d8;
+    }
+    /* ハブ画面 */
+    #home-screen {
+      max-width: 520px;
+      margin: auto;
+      padding: 2rem 1rem 3rem;
+      background: #fff3ea;
+      border-radius: 1rem;
+      box-shadow: 0 4px 10px rgb(180 58 49 / 0.25);
+    }
+    /* 難易度チェックの色 */
+    .form-check-label {
+      user-select: none;
+      font-weight: 600;
+      cursor: pointer;
+    }
+    .form-check-input:checked + .form-check-label::before {
+      /* チェックマークの背景と色 */
+      background-color: var(--difficulty-color);
+      border-color: var(--difficulty-color);
+    }
+    /* 独自チェックボックス色付け */
+    #easy + label::before {
+      --difficulty-color: #28a745; /* 緑 */
+    }
+    #normal + label::before {
+      --difficulty-color: #ffc107; /* 黄 */
+    }
+    #hard + label::before {
+      --difficulty-color: #dc3545; /* 赤 */
+    }
+    /* チェックマークの色付け (色付けはCSSが難しいためJS側でclass付与) */
+    .difficulty-easy .form-check-label::before {
+      background-color: #28a745 !important;
+      border-color: #28a745 !important;
+    }
+    .difficulty-normal .form-check-label::before {
+      background-color: #ffc107 !important;
+      border-color: #ffc107 !important;
+    }
+    .difficulty-hard .form-check-label::before {
+      background-color: #dc3545 !important;
+      border-color: #dc3545 !important;
+    }
+    /* タイマーバーに数字を中央に */
+    .progress {
+      height: 26px;
+      position: relative;
+      border-radius: 13px;
+      overflow: visible;
+      background-color: #f1e1db;
+      box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.15);
+    }
+    #timer-bar {
+      line-height: 26px;
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-align: center;
+      color: #fff;
+      border-radius: 13px;
+      transition: width 0.3s ease;
+      position: relative;
+      z-index: 2;
+      user-select: none;
+    }
+    #timer-bar::after {
+      content: "秒";
+      position: absolute;
+      right: 8px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-weight: 600;
+      color: #fff;
+      z-index: 3;
+      font-size: 0.9rem;
+      user-select: none;
+    }
+    /* ボタン配置 */
+    #home-screen .btn {
+      min-width: 140px;
+      font-weight: 700;
+      border-radius: 25px;
+      box-shadow: 0 4px 10px rgb(180 58 49 / 0.2);
+      transition: background-color 0.3s ease;
+    }
+    #home-screen .btn:hover {
+      filter: brightness(1.1);
+    }
+    /* 問題画面カード */
+    #quiz-screen .card {
+      max-width: 600px;
+      margin: auto;
+      border-radius: 20px;
+      border: none;
+      box-shadow: 0 10px 20px rgb(180 58 49 / 0.25);
+      background: #fff7f3;
+    }
+    #quiz-screen h1 {
+      color: #b43a31;
+      margin-bottom: 1rem;
+    }
+    #question-text {
+      min-height: 70px;
+      margin-bottom: 1.5rem;
+      color: #5a2a24;
+      font-weight: 700;
+      font-size: 1.3rem;
+      letter-spacing: 0.04em;
+    }
+    #choices button {
+      font-weight: 600;
+      font-size: 1rem;
+      border-radius: 12px;
+      box-shadow: 0 3px 6px rgb(180 58 49 / 0.15);
+      transition: transform 0.15s ease;
+    }
+    #choices button:hover:not(:disabled) {
+      transform: scale(1.03);
+      filter: brightness(1.05);
+      cursor: pointer;
+    }
+    #choices button:disabled {
+      cursor: default;
+    }
+    /* 正解色 */
+    #choices button.btn-success {
+      background-color: #28a745 !important;
+      border-color: #28a745 !important;
+      color: #fff !important;
+      box-shadow: 0 0 10px #28a745aa;
+    }
+    /* 不正解色 */
+    #choices button.btn-danger {
+      background-color: #dc3545 !important;
+      border-color: #dc3545 !important;
+      color: #fff !important;
+      box-shadow: 0 0 10px #dc3545aa;
+    }
+    /* 結果テキスト */
+    #result {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+    }
+    /* 進捗・難易度 */
+    #progress {
+      font-weight: 700;
+      color: #b43a31;
+    }
+    #difficulty.badge {
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.35em 0.7em;
+      border-radius: 12px;
+      user-select: none;
+    }
+    .badge.bg-success {
+      background-color: #28a745 !important;
+    }
+    .badge.bg-warning {
+      background-color: #ffc107 !important;
+      color: #5a3e00 !important;
+    }
+    .badge.bg-danger {
+      background-color: #dc3545 !important;
+    }
+    .badge.bg-primary {
+      background-color: #007bff !important;
+    }
+    .badge.bg-info {
+      background-color: #17a2b8 !important;
+      color: #0c5460 !important;
+    }
+    /* 結果モーダル */
+    .modal-content {
+      border-radius: 1rem;
+      font-family: "Yu Gothic", "Meiryo", "Hiragino Kaku Gothic Pro", "Noto Sans JP", sans-serif;
+      background: #fff4f1;
+      color: #5a2a24;
+      text-align: center;
+      box-shadow: 0 8px 20px rgb(180 58 49 / 0.3);
+    }
+    .modal-header {
+      border-bottom: none;
+    }
+    .modal-footer {
+      border-top: none;
+    }
+    #final-rank {
+      padding: 0.3em 0.9em;
+      font-weight: 800;
+      font-size: 1.2rem;
+      border-radius: 20px;
+      user-select: none;
+    }
+    /* ランキングリスト */
+    #ranking-list {
+      max-height: 160px;
+      overflow-y: auto;
+      margin-top: 0.5rem;
+      color: #b43a31;
+      font-weight: 600;
+    }
+    #ranking-list li {
+      background: #ffe5de;
+      margin-bottom: 0.3rem;
+      border-radius: 10px;
+      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
+      display: flex;
+      justify-content: space-between;
+    }
   </style>
 </head>
-<body class="bg-light">
+<body>
 
 <main class="container my-5">
-  <!-- ホーム画面 -->
-  <section id="home-screen" class="text-center">
-    <h1 class="mb-4 fw-bold">第二級デジタル通信クイズ - ホーム</h1>
+  <!-- ホーム(ハブ)画面 -->
+  <section id="home-screen" aria-label="ホーム画面">
+    <h1 class="text-center mb-4">中トロ ~CHUTORO~</h1>
 
-    <div class="mb-3">
-      <label class="form-label fw-semibold">難易度を選択</label><br />
-      <div class="form-check form-check-inline">
+    <h2 class="mb-3 fw-semibold">難易度を選択</h2>
+    <div class="d-flex justify-content-center gap-4 mb-4">
+      <div class="form-check difficulty-easy">
         <input class="form-check-input" type="checkbox" id="easy" value="易しい" checked />
         <label class="form-check-label" for="easy">易しい</label>
       </div>
-      <div class="form-check form-check-inline">
+      <div class="form-check difficulty-normal">
         <input class="form-check-input" type="checkbox" id="normal" value="普通" checked />
         <label class="form-check-label" for="normal">普通</label>
       </div>
-      <div class="form-check form-check-inline">
+      <div class="form-check difficulty-hard">
         <input class="form-check-input" type="checkbox" id="hard" value="難しい" checked />
         <label class="form-check-label" for="hard">難しい</label>
       </div>
     </div>
 
-    <div class="mb-3">
-      <label for="question-count" class="form-label fw-semibold">出題数を選択</label>
-      <select id="question-count" class="form-select w-auto mx-auto">
+    <div class="mb-4 text-center">
+      <label for="question-count" class="form-label fw-semibold mb-2 d-block">出題数を選択</label>
+      <select id="question-count" class="form-select w-auto mx-auto" aria-label="出題数選択">
         <option value="all" selected>全問</option>
         <option value="1">1問</option>
         <option value="2">2問</option>
@@ -50,69 +268,77 @@
       </select>
     </div>
 
-    <div class="d-flex justify-content-center gap-2">
-      <button id="start-btn" class="btn btn-primary">スタート</button>
-      <button id="random-btn" class="btn btn-secondary">お任せモード</button>
+    <div class="d-flex justify-content-center gap-3">
+      <button id="start-btn" class="btn btn-danger shadow">スタート</button>
+      <button id="random-btn" class="btn btn-outline-danger shadow">お任せモード</button>
     </div>
+
+    <hr class="my-5 border-3 border-danger" />
+
+    <!-- 過去5回のランキング -->
+    <section aria-label="過去のランキング" class="text-center">
+      <h2 class="mb-3 fw-semibold">過去5回の成績</h2>
+      <ul id="ranking-list" class="list-group mx-auto" style="max-width:400px;"></ul>
+    </section>
   </section>
 
   <!-- クイズ画面 -->
-  <section id="quiz-screen" class="d-none">
-    <div class="card shadow-sm mx-auto" style="max-width: 480px;">
+  <section id="quiz-screen" class="d-none" aria-label="クイズ画面">
+    <div class="card shadow-sm">
       <div class="card-body p-4">
-        <h1 class="h4 text-center mb-4 fw-bold">第二級デジタル通信 クイズ</h1>
+        <h1 class="h4 text-center mb-4">中トロ ~CHUTORO~ クイズ</h1>
 
         <!-- 進捗・難易度・タイマー -->
         <div class="d-flex justify-content-between align-items-center mb-3 small text-muted">
-          <div id="progress"></div>
+          <div id="progress" aria-live="polite" aria-atomic="true" style="color:#b43a31; font-weight:700;"></div>
           <div>
-            <span id="difficulty" class="badge bg-secondary"></span>
+            <span id="difficulty" class="badge bg-secondary" aria-live="polite" aria-atomic="true"></span>
           </div>
-          <div style="width: 120px;">
-            <div class="progress" style="height: 22px;">
-              <div id="timer-bar" class="progress-bar bg-success" role="progressbar" style="width: 100%;">
-                <span id="timer-text"></span>秒
+          <div style="width: 160px;">
+            <div class="progress" aria-label="残り時間">
+              <div id="timer-bar" class="progress-bar bg-success" role="progressbar" style="width: 100%;" aria-valuemin="0" aria-valuemax="30" aria-valuenow="30">
+                <span id="timer-text"></span>
               </div>
             </div>
           </div>
         </div>
 
         <!-- 問題 -->
-        <p id="question-text" class="fs-5 fw-semibold mb-4"></p>
+        <p id="question-text" class="fs-5 fw-semibold mb-4" tabindex="0"></p>
 
         <!-- 選択肢 -->
-        <div id="choices" class="d-grid gap-3 mb-3"></div>
+        <div id="choices" class="d-grid gap-3 mb-3" role="list"></div>
 
         <!-- 結果表示 -->
-        <p id="result" class="text-center fs-5 fw-semibold"></p>
+        <p id="result" class="text-center fs-5 fw-semibold" aria-live="polite" aria-atomic="true"></p>
 
         <!-- 次へボタン -->
         <div class="d-grid">
-          <button id="next-button" class="btn btn-primary" style="display:none;">次の問題へ</button>
+          <button id="next-button" class="btn btn-danger" style="display:none;" aria-label="次の問題へ進む">次の問題へ</button>
         </div>
       </div>
     </div>
   </section>
 </main>
 
-<!-- 結果画面用モーダル -->
-<div class="modal fade" id="resultModal" tabindex="-1" aria-labelledby="resultModalLabel" aria-hidden="true">
+<!-- 結果画面モーダル -->
+<div class="modal fade" id="resultModal" tabindex="-1" aria-labelledby="resultModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header border-0">
         <h5 class="modal-title" id="resultModalLabel">クイズ終了！</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="閉じる"></button>
       </div>
-      <div class="modal-body text-center fs-5">
-        <p id="final-score"></p>
-        <p>正答率：<strong id="final-percent"></strong>%</p>
-        <p>ランク：<span id="final-rank" class="badge fs-5"></span></p>
+      <div class="modal-body fs-5">
+        <p id="final-score" class="mb-2"></p>
+        <p>正答率: <span id="final-percent" class="fw-bold"></span>%</p>
+        <p>ランク: <span id="final-rank" class="badge"></span></p>
         <hr />
-        <h6>🏅 ローカルランキング（最新5回）</h6>
-        <ul id="ranking-list" class="list-group list-group-flush"></ul>
+        <h6>過去5回の成績</h6>
+        <ul id="modal-ranking-list" class="list-group mt-2"></ul>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-primary" data-bs-dismiss="modal">もう一度挑戦する</button>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-danger w-100" data-bs-dismiss="modal" id="modal-close-btn">ホームに戻る</button>
       </div>
     </div>
   </div>
@@ -120,190 +346,186 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-  // --- 問題データ ---
+  // クイズデータ（例）
   const quizData = [
     {
-      question: "Q1. デジタル変調方式で最も雑音に強いのは？",
-      choices: ["ASK", "FSK", "PSK", "QAM"],
+      question: "日本の首都は？",
+      choices: ["大阪", "京都", "東京", "名古屋"],
       answer: 2,
-      difficulty: "普通"
+      difficulty: "易しい",
     },
     {
-      question: "Q2. パリティビットの目的は？",
-      choices: ["圧縮", "同期", "誤り検出", "伝送速度向上"],
-      answer: 2,
-      difficulty: "易しい"
-    },
-    {
-      question: "Q3. 1バイトは何ビット？",
-      choices: ["4ビット", "8ビット", "16ビット", "32ビット", "64ビット"],
-      answer: 1,
-      difficulty: "易しい"
-    },
-    {
-      question: "Q4. QAMとは何の略？",
-      choices: [
-        "Quadrature Amplitude Modulation",
-        "Quick Access Mode",
-        "Quantum Analog Method",
-        "Quality Assurance Module"
-      ],
+      question: "富士山の標高は？",
+      choices: ["3776m", "3500m", "3000m", "4000m"],
       answer: 0,
-      difficulty: "難しい"
-    }
+      difficulty: "普通",
+    },
+    {
+      question: "世界で一番大きい砂漠は？",
+      choices: ["ゴビ砂漠", "サハラ砂漠", "アラビア砂漠", "カラハリ砂漠"],
+      answer: 1,
+      difficulty: "難しい",
+    },
+    {
+      question: "日本で一番長い川は？",
+      choices: ["信濃川", "利根川", "荒川", "淀川"],
+      answer: 0,
+      difficulty: "易しい",
+    },
+    {
+      question: "金閣寺はどこにある？",
+      choices: ["奈良", "京都", "大阪", "東京"],
+      answer: 1,
+      difficulty: "普通",
+    },
+    // 追加問題もここに...
   ];
 
-  // --- 変数 ---
-  let remainingQuestions = [];
+  // DOM要素
+  const homeScreen = document.getElementById("home-screen");
+  const quizScreen = document.getElementById("quiz-screen");
+  const questionTextElem = document.getElementById("question-text");
+  const choicesElem = document.getElementById("choices");
+  const resultElem = document.getElementById("result");
+  const nextBtn = document.getElementById("next-button");
+  const progressElem = document.getElementById("progress");
+  const difficultyElem = document.getElementById("difficulty");
+  const timerBarElem = document.getElementById("timer-bar");
+  const timerTextElem = document.getElementById("timer-text");
+  const startBtn = document.getElementById("start-btn");
+  const randomBtn = document.getElementById("random-btn");
+  const rankingListElem = document.getElementById("ranking-list");
+  const modalRankingListElem = document.getElementById("modal-ranking-list");
+  const finalScoreElem = document.getElementById("final-score");
+  const finalPercentElem = document.getElementById("final-percent");
+  const finalRankElem = document.getElementById("final-rank");
+  const modalCloseBtn = document.getElementById("modal-close-btn");
+  const resultModalEl = document.getElementById('resultModal');
+  const resultModal = new bootstrap.Modal(resultModalEl);
+
+  // 状態変数
+  let filteredQuiz = [];
+  let currentQuestionIndex = 0;
   let currentQuestion = null;
   let correctCount = 0;
-  let questionIndex = 0;
+  let timerInterval = null;
   const timeLimit = 30;
   let currentTime = timeLimit;
-  let timerInterval = null;
   let answered = false;
 
-  const modalElem = document.getElementById('resultModal');
-  const modal = new bootstrap.Modal(modalElem);
+  // 難易度の色付けマップ
+  const difficultyColors = {
+    "易しい": "#28a745",  // 緑
+    "普通": "#ffc107",    // 黄
+    "難しい": "#dc3545",  // 赤
+  };
 
-  // DOM Elements
-  const homeScreen = document.getElementById('home-screen');
-  const quizScreen = document.getElementById('quiz-screen');
-
-  // ボタン
-  const startBtn = document.getElementById('start-btn');
-  const randomBtn = document.getElementById('random-btn');
-  const nextBtn = document.getElementById('next-button');
-
-  // UI Elements
-  const progressElem = document.getElementById('progress');
-  const difficultyElem = document.getElementById('difficulty');
-  const questionTextElem = document.getElementById('question-text');
-  const choicesElem = document.getElementById('choices');
-  const resultElem = document.getElementById('result');
-  const timerBarElem = document.getElementById('timer-bar');
-  const timerTextElem = document.getElementById('timer-text');
-
-  // 結果モーダル要素
-  const finalScoreElem = document.getElementById('final-score');
-  const finalPercentElem = document.getElementById('final-percent');
-  const finalRankElem = document.getElementById('final-rank');
-  const rankingListElem = document.getElementById('ranking-list');
-
-  // --- イベント設定 ---
-
-  startBtn.addEventListener('click', () => {
-    const selectedDifficulties = [...document.querySelectorAll('#home-screen input[type=checkbox]:checked')].map(input => input.value);
-    const countValue = document.getElementById('question-count').value;
-
-    let filtered = quizData.filter(q => selectedDifficulties.includes(q.difficulty));
-
-    if (countValue !== 'all') {
-      filtered = shuffleArray(filtered).slice(0, Number(countValue));
-    } else {
-      filtered = shuffleArray(filtered);
+  // スタートボタン押下時
+  startBtn.addEventListener("click", () => {
+    const selectedDifficulties = getSelectedDifficulties();
+    if (selectedDifficulties.length === 0) {
+      alert("難易度を少なくとも1つ選択してください。");
+      return;
+    }
+    let count = document.getElementById("question-count").value;
+    if (count !== "all") {
+      count = parseInt(count, 10);
     }
 
-    if (filtered.length === 0) {
-      alert("選択した条件に該当する問題がありません。");
+    filteredQuiz = quizData.filter(q => selectedDifficulties.includes(q.difficulty));
+    if (filteredQuiz.length === 0) {
+      alert("選択した難易度の問題がありません。");
       return;
     }
 
-    startQuiz(filtered);
+    filteredQuiz = shuffleArray(filteredQuiz);
+
+    if (count !== "all" && count < filteredQuiz.length) {
+      filteredQuiz = filteredQuiz.slice(0, count);
+    }
+
+    startQuiz();
   });
 
-  randomBtn.addEventListener('click', () => {
-    const shuffledAll = shuffleArray(quizData);
-    startQuiz(shuffledAll);
+  // お任せモード押下時（全問シャッフル）
+  randomBtn.addEventListener("click", () => {
+    filteredQuiz = shuffleArray(quizData);
+    startQuiz();
   });
 
-  nextBtn.addEventListener('click', () => {
-    loadQuestion();
-  });
-
-  // モーダルが閉じたときホーム画面に戻る
-  modalElem.addEventListener('hidden.bs.modal', () => {
-    restartQuiz();
-  });
-
-  // --- 関数 ---
-
-  function startQuiz(questionSet) {
-    homeScreen.classList.add('d-none');
-    quizScreen.classList.remove('d-none');
-
-    remainingQuestions = [...questionSet];
-    correctCount = 0;
-    questionIndex = 0;
-    answered = false;
-
-    loadQuestion();
-  }
-
-  function restartQuiz() {
-    quizScreen.classList.add('d-none');
-    homeScreen.classList.remove('d-none');
-    clearInterval(timerInterval);
-    resetQuizUI();
-    showRanking();
-  }
-
-  function loadQuestion() {
-    clearInterval(timerInterval);
-    resultElem.textContent = "";
-    resultElem.className = "";
-    nextBtn.style.display = "none";
-    choicesElem.innerHTML = "";
-
-    if (remainingQuestions.length === 0) {
+  // 次の問題ボタン
+  nextBtn.addEventListener("click", () => {
+    currentQuestionIndex++;
+    if (currentQuestionIndex >= filteredQuiz.length) {
       showFinalResult();
-      return;
+    } else {
+      showQuestion();
     }
+  });
 
-    currentQuestion = remainingQuestions.shift();
-    questionIndex++;
-    answered = false;
-    currentTime = timeLimit;
+  // モーダル閉じたらホームに戻る
+  modalCloseBtn.addEventListener("click", () => {
+    resultModal.hide();
+    quizScreen.classList.add("d-none");
+    homeScreen.classList.remove("d-none");
+  });
 
-    progressElem.textContent = `問題 ${questionIndex} / ${questionIndex + remainingQuestions.length}`;
+  // 難易度チェックされたものを取得
+  function getSelectedDifficulties() {
+    const checks = [...document.querySelectorAll("#home-screen input[type=checkbox]")];
+    return checks.filter(c => c.checked).map(c => c.value);
+  }
+
+  // クイズ開始
+  function startQuiz() {
+    homeScreen.classList.add("d-none");
+    quizScreen.classList.remove("d-none");
+    currentQuestionIndex = 0;
+    correctCount = 0;
+    showQuestion();
+  }
+
+  // 問題表示
+  function showQuestion() {
+    resetQuizUI();
+
+    currentQuestion = filteredQuiz[currentQuestionIndex];
+    questionTextElem.textContent = `Q${currentQuestionIndex + 1}: ${currentQuestion.question}`;
+
+    // 進捗表示
+    progressElem.textContent = `${currentQuestionIndex + 1} / ${filteredQuiz.length}`;
+
+    // 難易度表示と色付け
     difficultyElem.textContent = currentQuestion.difficulty;
-    difficultyElem.className = "badge " + getDifficultyBadge(currentQuestion.difficulty);
+    difficultyElem.style.backgroundColor = difficultyColors[currentQuestion.difficulty] || "#6c757d";
 
-    questionTextElem.textContent = currentQuestion.question;
-
-    currentQuestion.choices.forEach((choice, index) => {
+    // 選択肢表示
+    choicesElem.innerHTML = "";
+    currentQuestion.choices.forEach((choice, idx) => {
       const btn = document.createElement("button");
-      btn.className = "btn btn-outline-primary";
+      btn.type = "button";
+      btn.className = "btn btn-outline-danger";
       btn.textContent = choice;
-      btn.onclick = () => handleAnswer(index);
+      btn.setAttribute("role", "listitem");
+      btn.addEventListener("click", () => handleAnswer(idx));
       choicesElem.appendChild(btn);
     });
 
+    answered = false;
+    currentTime = timeLimit;
     updateTimerDisplay();
-    startTimer();
-  }
 
-  function getDifficultyBadge(diff) {
-    switch(diff) {
-      case "易しい": return "bg-success";
-      case "普通": return "bg-warning text-dark";
-      case "難しい": return "bg-danger";
-      default: return "bg-secondary";
-    }
-  }
-
-  function startTimer() {
     timerInterval = setInterval(() => {
       currentTime--;
-      updateTimerDisplay();
-
       if (currentTime <= 0) {
-        clearInterval(timerInterval);
         handleTimeout();
+      } else {
+        updateTimerDisplay();
       }
     }, 1000);
   }
 
+  // タイマー表示更新
   function updateTimerDisplay() {
     timerTextElem.textContent = currentTime;
     const percent = (currentTime / timeLimit) * 100;
@@ -311,13 +533,17 @@
 
     if (percent > 60) {
       timerBarElem.className = "progress-bar bg-success";
+      timerBarElem.style.color = "#fff";
     } else if (percent > 30) {
       timerBarElem.className = "progress-bar bg-warning";
+      timerBarElem.style.color = "#5a3e00";
     } else {
       timerBarElem.className = "progress-bar bg-danger";
+      timerBarElem.style.color = "#fff";
     }
   }
 
+  // 回答処理
   function handleAnswer(selectedIndex) {
     if (answered) return;
     answered = true;
@@ -328,11 +554,11 @@
     buttons.forEach((btn, idx) => {
       btn.disabled = true;
       if (idx === currentQuestion.answer) {
-        btn.classList.remove("btn-outline-primary");
+        btn.classList.remove("btn-outline-danger");
         btn.classList.add("btn-success");
       }
       if (idx === selectedIndex && idx !== currentQuestion.answer) {
-        btn.classList.remove("btn-outline-primary");
+        btn.classList.remove("btn-outline-danger");
         btn.classList.add("btn-danger");
       }
     });
@@ -347,31 +573,37 @@
     }
 
     nextBtn.style.display = "block";
+    nextBtn.focus();
   }
 
+  // タイムアウト処理
   function handleTimeout() {
     if (answered) return;
     answered = true;
+    clearInterval(timerInterval);
 
     const buttons = choicesElem.querySelectorAll("button");
     buttons.forEach((btn, idx) => {
       btn.disabled = true;
       if (idx === currentQuestion.answer) {
-        btn.classList.remove("btn-outline-primary");
+        btn.classList.remove("btn-outline-danger");
         btn.classList.add("btn-success");
       }
     });
 
     resultElem.textContent = `時間切れ。正解は「${currentQuestion.choices[currentQuestion.answer]}」です。`;
     resultElem.className = "text-danger fw-bold text-center";
+
     nextBtn.style.display = "block";
+    nextBtn.focus();
   }
 
+  // 結果表示
   function showFinalResult() {
     clearInterval(timerInterval);
-    quizScreen.classList.add('d-none');
+    quizScreen.classList.add("d-none");
 
-    const total = questionIndex;
+    const total = filteredQuiz.length;
     const percent = total ? Math.round((correctCount / total) * 100) : 0;
     const rank = getRank(percent);
 
@@ -381,12 +613,13 @@
     finalRankElem.className = "badge fs-5 " + rank.className;
 
     saveRanking(percent);
-
     updateRankingList();
+    updateModalRankingList();
 
-    modal.show();
+    resultModal.show();
   }
 
+  // ランク判定
   function getRank(percent) {
     if (percent === 100) return { text: "S", className: "bg-primary" };
     if (percent >= 90) return { text: "A", className: "bg-success" };
@@ -395,6 +628,7 @@
     return { text: "D", className: "bg-danger" };
   }
 
+  // ランキング保存（ローカルストレージ）
   function saveRanking(percent) {
     const key = "quizRanking";
     let ranking = JSON.parse(localStorage.getItem(key)) || [];
@@ -403,47 +637,64 @@
     localStorage.setItem(key, JSON.stringify(ranking));
   }
 
+  // ホーム画面ランキングリスト更新
   function updateRankingList() {
     const ranking = JSON.parse(localStorage.getItem("quizRanking")) || [];
     rankingListElem.innerHTML = "";
     if (ranking.length === 0) {
-      rankingListElem.innerHTML = "<li class='list-group-item'>まだランキングはありません。</li>";
+      rankingListElem.innerHTML = "<li class='list-group-item'>まだ成績がありません。</li>";
       return;
     }
-    ranking.forEach((item, i) => {
+    ranking.forEach((item, idx) => {
       const li = document.createElement("li");
-      li.className = "list-group-item d-flex justify-content-between";
-      li.textContent = `${i + 1}回目: ${new Date(item.date).toLocaleString()} `;
-      const span = document.createElement("span");
-      span.textContent = `得点: ${item.score}%`;
-      li.appendChild(span);
+      li.className = "list-group-item d-flex justify-content-between align-items-center";
+      li.innerHTML = `
+        <span>第${ranking.length - idx}回: ${new Date(item.date).toLocaleString()}</span>
+        <span>${item.score}%</span>
+      `;
       rankingListElem.appendChild(li);
     });
   }
 
-  function resetQuizUI() {
-    resultElem.textContent = "";
-    choicesElem.innerHTML = "";
-    nextBtn.style.display = "none";
-    progressElem.textContent = "";
-    difficultyElem.textContent = "";
-    questionTextElem.textContent = "";
-    timerBarElem.style.width = "100%";
-    timerTextElem.textContent = timeLimit;
-    timerBarElem.className = "progress-bar bg-success";
+  // モーダルの過去5回成績更新
+  function updateModalRankingList() {
+    const ranking = JSON.parse(localStorage.getItem("quizRanking")) || [];
+    modalRankingListElem.innerHTML = "";
+    if (ranking.length === 0) {
+      modalRankingListElem.innerHTML = "<li class='list-group-item'>まだ成績がありません。</li>";
+      return;
+    }
+    ranking.forEach((item, idx) => {
+      const li = document.createElement("li");
+      li.className = "list-group-item d-flex justify-content-between align-items-center";
+      const rankObj = getRank(item.score);
+      li.innerHTML = `
+        <span>第${ranking.length - idx}回: ${new Date(item.date).toLocaleString()}</span>
+        <span>
+          <span class="badge" style="background-color:${rankObj.className.includes('bg-primary') ? '#0d6efd' : rankObj.className.includes('bg-success') ? '#198754' : rankObj.className.includes('bg-info') ? '#0dcaf0' : rankObj.className.includes('bg-warning') ? '#ffc107' : '#dc3545'}">
+            ${item.score}%
+          </span>
+          <span class="badge" style="background-color:${rankObj.className.includes('bg-primary') ? '#0d6efd' : rankObj.className.includes('bg-success') ? '#198754' : rankObj.className.includes('bg-info') ? '#0dcaf0' : rankObj.className.includes('bg-warning') ? '#ffc107' : '#dc3545'}; margin-left: 5px;">
+            ${rankObj.text}
+          </span>
+        </span>
+      `;
+      modalRankingListElem.appendChild(li);
+    });
   }
 
-  // 配列シャッフル
-  function shuffleArray(arr) {
-    return arr
-      .map(value => ({ value, sort: Math.random() }))
-      .sort((a, b) => a.sort - b.sort)
-      .map(({ value }) => value);
+  // 配列シャッフル関数
+  function shuffleArray(array) {
+    const arr = array.slice();
+    for (let i = arr.length -1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i +1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
   }
 
-  // 初回読み込み時にランキング更新
-  showRanking = updateRankingList;
-  showRanking();
+  // 初期ランキングリスト更新
+  updateRankingList();
 </script>
 </body>
 </html>
