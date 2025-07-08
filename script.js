@@ -26,7 +26,10 @@ const quizData = [
   }
 ];
 
+let remainingQuestions = [...quizData];
 let currentQuestion = null;
+let correctCount = 0;
+let totalCount = quizData.length;
 let answered = false;
 
 function loadQuestion() {
@@ -35,11 +38,18 @@ function loadQuestion() {
   const choicesDiv = document.getElementById("choices");
   choicesDiv.innerHTML = "";
 
-  currentQuestion = quizData[Math.floor(Math.random() * quizData.length)];
+  if (remainingQuestions.length === 0) {
+    showFinalResult();
+    return;
+  }
+
+  const randomIndex = Math.floor(Math.random() * remainingQuestions.length);
+  currentQuestion = remainingQuestions.splice(randomIndex, 1)[0];
   document.getElementById("question-text").textContent = currentQuestion.question;
 
   currentQuestion.choices.forEach((choice, index) => {
     const btn = document.createElement("button");
+    btn.className = "btn btn-outline-primary";
     btn.textContent = choice;
     btn.onclick = () => handleAnswer(index);
     choicesDiv.appendChild(btn);
@@ -54,9 +64,28 @@ function handleAnswer(selectedIndex) {
 
   const isCorrect = selectedIndex === currentQuestion.answer;
   document.getElementById("result").textContent = isCorrect ? "✅ 正解！" : "❌ 不正解";
+  document.getElementById("result").className = `mt-3 fs-5 fw-bold text-${isCorrect ? "success" : "danger"}`;
+  if (isCorrect) correctCount++;
 
   document.getElementById("next-button").style.display = "inline-block";
 }
 
-window.onload = loadQuestion;
+function showFinalResult() {
+  const percent = Math.round((correctCount / totalCount) * 100);
+  document.getElementById("quiz-box").innerHTML = `
+    <h2 class="text-center">クイズ終了！</h2>
+    <p class="fs-5 text-center">${totalCount}問中 ${correctCount}問正解でした。</p>
+    <p class="fs-5 text-center">正答率：<strong>${percent}%</strong></p>
+    <div class="text-center">
+      <button class="btn btn-primary mt-3" onclick="restartQuiz()">もう一度挑戦する</button>
+    </div>
+  `;
+}
 
+function restartQuiz() {
+  remainingQuestions = [...quizData];
+  correctCount = 0;
+  loadQuestion();
+}
+
+window.onload = loadQuestion;
