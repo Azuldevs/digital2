@@ -1,100 +1,9 @@
-// クイズアプリ JavaScript（完全版）
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+// ★ ここに、ステップ2でコピーしたウェブアプリのURLを貼り付けてください ★
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+const SPREADSHEET_URL = "ここにウェブアプリのURLを貼り付け";
 
-// クイズデータ
-const quizData = [
-  {
-    question: "日本の首都は？",
-    choices: ["大阪", "京都", "東京", "名古屋"],
-    answer: 2,
-    difficulty: "易しい",
-  },
-  {
-    question: "富士山の標高は？",
-    choices: ["3776m", "3500m", "3000m", "4000m"],
-    answer: 0,
-    difficulty: "普通",
-  },
-  {
-    question: "世界で一番大きい砂漠は？",
-    choices: ["ゴビ砂漠", "サハラ砂漠", "アラビア砂漠", "カラハリ砂漠"],
-    answer: 1,
-    difficulty: "難しい",
-  },
-  {
-    question: "日本で一番長い川は？",
-    choices: ["信濃川", "利根川", "荒川", "淀川"],
-    answer: 0,
-    difficulty: "易しい",
-  },
-  {
-    question: "金閣寺はどこにある？",
-    choices: ["奈良", "京都", "大阪", "東京"],
-    answer: 1,
-    difficulty: "普通",
-  },
-  {
-    question: "日本の最高峰は？",
-    choices: ["富士山", "北岳", "間ノ岳", "奥穂高岳"],
-    answer: 0,
-    difficulty: "易しい",
-  },
-  {
-    question: "日本で一番面積の大きい都道府県は？",
-    choices: ["北海道", "岩手県", "福島県", "長野県"],
-    answer: 0,
-    difficulty: "普通",
-  },
-  {
-    question: "源氏物語の作者は？",
-    choices: ["紫式部", "清少納言", "和泉式部", "小野小町"],
-    answer: 0,
-    difficulty: "難しい",
-  },
-  {
-    question: "日本の国鳥は？",
-    choices: ["鶴", "雉", "鳩", "鷲"],
-    answer: 1,
-    difficulty: "普通",
-  },
-  {
-    question: "徳川幕府の最後の将軍は？",
-    choices: ["徳川家茂", "徳川慶喜", "徳川家定", "徳川家慶"],
-    answer: 1,
-    difficulty: "難しい",
-  },
-  {
-    question: "日本の三大夜景都市は？",
-    choices: ["函館・横浜・神戸", "札幌・東京・大阪", "函館・神戸・長崎", "東京・横浜・神戸"],
-    answer: 2,
-    difficulty: "難しい",
-  },
-  {
-    question: "日本で最も深い湖は？",
-    choices: ["琵琶湖", "田沢湖", "十和田湖", "中禅寺湖", "洞爺湖"],
-    answer: 1,
-    difficulty: "普通",
-  },
-  {
-    question: "四国の県はいくつある？",
-    choices: ["3つ", "4つ", "5つ", "6つ"],
-    answer: 1,
-    difficulty: "易しい",
-  },
-  {
-    question: "日本の伝統的な数の数え方で「ひとつ、ふたつ、みっつ」の次は？",
-    choices: ["よっつ", "よんつ", "しっつ", "よつ"],
-    answer: 0,
-    difficulty: "普通",
-  },
-  {
-    question: "日本で最も古い現存する木造建築は？",
-    choices: ["法隆寺", "東大寺", "清水寺", "金閣寺", "銀閣寺", "平等院"],
-    answer: 0,
-    difficulty: "難しい",
-  }
-];
-
-// DOM要素
+// === DOM要素 ===
 const homeScreen = document.getElementById("home-screen");
 const quizScreen = document.getElementById("quiz-screen");
 const questionTextElem = document.getElementById("question-text");
@@ -107,359 +16,279 @@ const timerBarElem = document.getElementById("timer-bar");
 const timerTextElem = document.getElementById("timer-text");
 const startBtn = document.getElementById("start-btn");
 const randomBtn = document.getElementById("random-btn");
+const subjectSelect = document.getElementById("subject-select");
 const rankingListElem = document.getElementById("ranking-list");
 const modalRankingListElem = document.getElementById("modal-ranking-list");
 const finalScoreElem = document.getElementById("final-score");
 const finalPercentElem = document.getElementById("final-percent");
 const finalRankElem = document.getElementById("final-rank");
-const modalCloseBtn = document.getElementById("modal-close-btn");
 const resultModalEl = document.getElementById('resultModal');
 const resultModal = new bootstrap.Modal(resultModalEl);
 
-// 状態変数
+// === 状態変数 ===
+let quizData = [];
 let filteredQuiz = [];
 let currentQuestionIndex = 0;
-let currentQuestion = null;
 let correctCount = 0;
 let timerInterval = null;
-const timeLimit = 30;
-let currentTime = timeLimit;
+const TIME_LIMIT = 30;
 let answered = false;
-
-// メモリ内ランキングデータ（localStorage代替）
 let rankingData = [];
 
-// 難易度の色付けマップ
-const difficultyColors = {
-  "易しい": "#27ae60",  // 緑
-  "普通": "#f39c12",    // 黄
-  "難しい": "#e74c3c",  // 赤
-};
+// === 定数 ===
+const difficultyClasses = { "易しい": "bg-success", "普通": "bg-warning text-dark", "難しい": "bg-danger" };
 
-// 難易度のBootstrapクラスマップ
-const difficultyClasses = {
-  "易しい": "bg-success",
-  "普通": "bg-warning",
-  "難しい": "bg-danger"
-};
-
-// ランクの判定と色付け
-function getRankInfo(percentage) {
-  if (percentage >= 90) return { rank: "S", class: "bg-primary" };
-  if (percentage >= 80) return { rank: "A", class: "bg-success" };
-  if (percentage >= 70) return { rank: "B", class: "bg-info" };
-  if (percentage >= 60) return { rank: "C", class: "bg-warning" };
-  return { rank: "D", class: "bg-danger" };
-}
-
-// 配列シャッフル関数
-function shuffleArray(array) {
-  const shuffled = [...array];
-  for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
-  }
-  return shuffled;
-}
-
-// 初期化
-document.addEventListener('DOMContentLoaded', function() {
-  updateRankingList();
-  
-  // イベントリスナーの設定
-  startBtn.addEventListener("click", handleStart);
-  randomBtn.addEventListener("click", handleRandomMode);
-  nextBtn.addEventListener("click", handleNext);
-  modalCloseBtn.addEventListener("click", handleModalClose);
+// === 初期化処理 ===
+document.addEventListener('DOMContentLoaded', async () => {
+    startBtn.disabled = true;
+    randomBtn.disabled = true;
+    try {
+        const response = await fetch(SPREADSHEET_URL);
+        if (!response.ok) throw new Error(`Network response was not ok, status: ${response.status}`);
+        const data = await response.json();
+        if (data.error) throw new Error(data.error);
+        quizData = data;
+        populateSubjects();
+        console.log("クイズデータをスプレッドシートから取得しました:", quizData);
+    } catch (error) {
+        console.error("スプレッドシートからのデータ取得に失敗しました:", error);
+        alert("クイズデータの読み込みに失敗しました。URLやシート名が正しいか確認してください。");
+    } finally {
+        startBtn.disabled = false;
+        randomBtn.disabled = false;
+    }
+    
+    loadRanking();
+    updateRankingList(rankingListElem);
+    initializeEventListeners();
 });
 
-// スタートボタン押下処理
-function handleStart() {
-  const selectedDifficulties = getSelectedDifficulties();
-  if (selectedDifficulties.length === 0) {
-    alert("難易度を少なくとも1つ選択してください。");
-    return;
-  }
-  
-  let count = document.getElementById("question-count").value;
-  if (count !== "all") {
-    count = parseInt(count, 10);
-  }
-
-  filteredQuiz = quizData.filter(q => selectedDifficulties.includes(q.difficulty));
-  if (filteredQuiz.length === 0) {
-    alert("選択した難易度の問題がありません。");
-    return;
-  }
-
-  filteredQuiz = shuffleArray(filteredQuiz);
-
-  if (count !== "all" && count < filteredQuiz.length) {
-    filteredQuiz = filteredQuiz.slice(0, count);
-  }
-
-  startQuiz();
+function initializeEventListeners() {
+    startBtn.addEventListener("click", handleStart);
+    randomBtn.addEventListener("click", handleRandomMode);
+    nextBtn.addEventListener("click", handleNext);
+    resultModalEl.addEventListener('hidden.bs.modal', () => {
+        quizScreen.classList.add("d-none");
+        homeScreen.classList.remove("d-none");
+    });
 }
 
-// お任せモード押下処理
-function handleRandomMode() {
-  filteredQuiz = shuffleArray([...quizData]);
-  startQuiz();
+// === データ処理・準備 ===
+function populateSubjects() {
+    const subjects = [...new Set(quizData.map(q => q.subject).filter(Boolean))];
+    subjects.sort();
+    subjects.forEach(subject => {
+        const option = document.createElement('option');
+        option.value = subject;
+        option.textContent = subject;
+        subjectSelect.appendChild(option);
+    });
 }
 
-// 次の問題ボタン処理
-function handleNext() {
-  currentQuestionIndex++;
-  if (currentQuestionIndex >= filteredQuiz.length) {
-    showFinalResult();
-  } else {
-    showQuestion();
-  }
+function getRankInfo(percentage) {
+    if (percentage === 100) return { rank: "S", class: "bg-primary" };
+    if (percentage >= 80) return { rank: "A", class: "bg-success" };
+    if (percentage >= 60) return { rank: "B", class: "bg-info text-dark" };
+    if (percentage >= 40) return { rank: "C", class: "bg-warning text-dark" };
+    return { rank: "D", class: "bg-danger" };
 }
 
-// モーダル閉じる処理
-function handleModalClose() {
-  resultModal.hide();
-  quizScreen.classList.add("d-none");
-  homeScreen.classList.remove("d-none");
-}
-
-// 難易度チェックされたものを取得
-function getSelectedDifficulties() {
-  const checks = [...document.querySelectorAll("#home-screen input[type=checkbox]")];
-  return checks.filter(c => c.checked).map(c => c.value);
-}
-
-// クイズ開始
-function startQuiz() {
-  homeScreen.classList.add("d-none");
-  quizScreen.classList.remove("d-none");
-  currentQuestionIndex = 0;
-  correctCount = 0;
-  showQuestion();
-}
-
-// UIリセット
-function resetQuizUI() {
-  resultElem.textContent = "";
-  resultElem.className = "text-center fs-5 fw-semibold";
-  nextBtn.style.display = "none";
-  answered = false;
-  
-  // タイマーをクリア
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
-}
-
-// 問題表示
-function showQuestion() {
-  resetQuizUI();
-
-  currentQuestion = filteredQuiz[currentQuestionIndex];
-  questionTextElem.textContent = `Q${currentQuestionIndex + 1}: ${currentQuestion.question}`;
-
-  // 進捗表示
-  progressElem.textContent = `${currentQuestionIndex + 1} / ${filteredQuiz.length}`;
-
-  // 難易度表示と色付け
-  difficultyElem.textContent = currentQuestion.difficulty;
-  difficultyElem.className = `badge ${difficultyClasses[currentQuestion.difficulty] || "bg-secondary"}`;
-  difficultyElem.style.backgroundColor = difficultyColors[currentQuestion.difficulty] || "#6c757d";
-
-  // 選択肢表示（任意の数の選択肢に対応）
-  choicesElem.innerHTML = "";
-  currentQuestion.choices.forEach((choice, idx) => {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "btn btn-outline-danger";
-    btn.textContent = choice;
-    btn.setAttribute("data-index", idx);
-    btn.addEventListener("click", () => handleAnswer(idx));
-    choicesElem.appendChild(btn);
-  });
-
-  // タイマー開始
-  startTimer();
-}
-
-// 回答処理
-function handleAnswer(selectedIndex) {
-  if (answered) return;
-
-  answered = true;
-  clearInterval(timerInterval);
-
-  const buttons = choicesElem.querySelectorAll("button");
-  const correctIndex = currentQuestion.answer;
-
-  // 全ボタンを無効化
-  buttons.forEach(btn => {
-    btn.disabled = true;
-  });
-
-  // 正解ボタンを緑に
-  buttons[correctIndex].classList.remove("btn-outline-danger");
-  buttons[correctIndex].classList.add("btn-success");
-
-  // 選択したボタンの処理
-  if (selectedIndex === correctIndex) {
-    // 正解
-    correctCount++;
-    resultElem.textContent = "正解！";
-    resultElem.classList.add("text-success");
-  } else {
-    // 不正解
-    buttons[selectedIndex].classList.remove("btn-outline-danger");
-    buttons[selectedIndex].classList.add("btn-danger");
-    resultElem.textContent = `不正解。正解は「${currentQuestion.choices[correctIndex]}」でした。`;
-    resultElem.classList.add("text-danger");
-  }
-
-  // 次へボタンを表示
-  nextBtn.style.display = "block";
-}
-
-// タイマー開始
-function startTimer() {
-  currentTime = timeLimit;
-  updateTimerDisplay();
-
-  timerInterval = setInterval(() => {
-    currentTime--;
-    updateTimerDisplay();
-
-    if (currentTime <= 0) {
-      clearInterval(timerInterval);
-      handleTimeUp();
+function shuffleArray(array) {
+    const shuffled = [...array];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
     }
-  }, 1000);
+    return shuffled;
 }
 
-// タイマー表示更新
-function updateTimerDisplay() {
-  const percentage = (currentTime / timeLimit) * 100;
-  timerBarElem.style.width = `${percentage}%`;
-  timerTextElem.textContent = currentTime;
-  
-  // 残り時間に応じて色を変更
-  if (currentTime <= 5) {
-    timerBarElem.classList.remove("bg-success", "bg-warning");
-    timerBarElem.classList.add("bg-danger");
-  } else if (currentTime <= 10) {
-    timerBarElem.classList.remove("bg-success", "bg-danger");
-    timerBarElem.classList.add("bg-warning");
-  } else {
-    timerBarElem.classList.remove("bg-warning", "bg-danger");
-    timerBarElem.classList.add("bg-success");
-  }
+// === クイズ制御 ===
+function handleStart() {
+    // 1. 教科でフィルタリング
+    const selectedSubject = subjectSelect.value;
+    let tempQuiz = quizData;
+    if (selectedSubject !== "all") {
+        tempQuiz = quizData.filter(q => q.subject === selectedSubject);
+    }
+
+    // 2. 難易度でフィルタリング
+    const selectedDifficulties = [...document.querySelectorAll("#home-screen input[type=checkbox]:checked")].map(c => c.value);
+    if (selectedDifficulties.length === 0) {
+        alert("難易度を少なくとも1つ選択してください。");
+        return;
+    }
+    tempQuiz = tempQuiz.filter(q => selectedDifficulties.includes(q.difficulty));
+    
+    // 3. シャッフルして問題数を調整
+    filteredQuiz = shuffleArray(tempQuiz);
+    const count = document.getElementById("question-count").value;
+    if (count !== "all") {
+        filteredQuiz = filteredQuiz.slice(0, parseInt(count, 10));
+    }
+    
+    startQuiz();
 }
 
-// 時間切れ処理
+function handleRandomMode() {
+    filteredQuiz = shuffleArray([...quizData]);
+    startQuiz();
+}
+
+function startQuiz() {
+    if (filteredQuiz.length === 0) {
+        alert("出題できる問題がありません。条件を変更して再度お試しください。");
+        return;
+    }
+    homeScreen.classList.add("d-none");
+    quizScreen.classList.remove("d-none");
+    currentQuestionIndex = 0;
+    correctCount = 0;
+    showQuestion();
+}
+
+function showQuestion() {
+    if (timerInterval) clearInterval(timerInterval);
+    answered = false;
+    nextBtn.style.display = "none";
+    resultElem.textContent = "";
+
+    const currentQuestion = filteredQuiz[currentQuestionIndex];
+    questionTextElem.textContent = `Q${currentQuestionIndex + 1}: ${currentQuestion.question}`;
+    progressElem.textContent = `${currentQuestionIndex + 1} / ${filteredQuiz.length}`;
+    difficultyElem.textContent = currentQuestion.difficulty;
+    difficultyElem.className = `badge ${difficultyClasses[currentQuestion.difficulty] || "bg-secondary"}`;
+    
+    choicesElem.innerHTML = "";
+    currentQuestion.choices.forEach((choice, idx) => {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "btn btn-outline-danger";
+        btn.textContent = choice;
+        btn.addEventListener("click", () => handleAnswer(idx, currentQuestion));
+        choicesElem.appendChild(btn);
+    });
+    
+    startTimer();
+}
+
+function handleAnswer(selectedIndex, question) {
+    if (answered) return;
+    answered = true;
+    clearInterval(timerInterval);
+
+    const buttons = choicesElem.querySelectorAll("button");
+    const correctIndex = question.answer;
+    buttons.forEach(btn => btn.disabled = true);
+    buttons[correctIndex].classList.replace("btn-outline-danger", "btn-success");
+
+    if (selectedIndex === correctIndex) {
+        correctCount++;
+        resultElem.textContent = "正解！";
+        resultElem.className = "text-center fs-5 fw-bold text-success";
+    } else {
+        buttons[selectedIndex]?.classList.replace("btn-outline-danger", "btn-danger");
+        resultElem.textContent = `不正解… 正解は「${question.choices[correctIndex]}」`;
+        resultElem.className = "text-center fs-5 fw-bold text-danger";
+    }
+    nextBtn.style.display = "block";
+}
+
+function handleNext() {
+    currentQuestionIndex++;
+    if (currentQuestionIndex < filteredQuiz.length) {
+        showQuestion();
+    } else {
+        showFinalResult();
+    }
+}
+
+function startTimer() {
+    let currentTime = TIME_LIMIT;
+    const updateDisplay = () => {
+        const percentage = (currentTime / TIME_LIMIT) * 100;
+        timerBarElem.style.width = `${percentage}%`;
+        timerTextElem.textContent = currentTime;
+        timerBarElem.classList.remove("bg-success", "bg-warning", "bg-danger");
+        if (currentTime <= 5) timerBarElem.classList.add("bg-danger");
+        else if (currentTime <= 10) timerBarElem.classList.add("bg-warning");
+        else timerBarElem.classList.add("bg-success");
+    };
+
+    updateDisplay();
+    timerInterval = setInterval(() => {
+        currentTime--;
+        updateDisplay();
+        if (currentTime <= 0) {
+            clearInterval(timerInterval);
+            handleTimeUp();
+        }
+    }, 1000);
+}
+
 function handleTimeUp() {
-  if (answered) return;
-
-  answered = true;
-  const buttons = choicesElem.querySelectorAll("button");
-  const correctIndex = currentQuestion.answer;
-
-  // 全ボタンを無効化
-  buttons.forEach(btn => {
-    btn.disabled = true;
-  });
-
-  // 正解ボタンを緑に
-  buttons[correctIndex].classList.remove("btn-outline-danger");
-  buttons[correctIndex].classList.add("btn-success");
-
-  resultElem.textContent = `時間切れ！正解は「${currentQuestion.choices[correctIndex]}」でした。`;
-  resultElem.classList.add("text-danger");
-
-  // 次へボタンを表示
-  nextBtn.style.display = "block";
+    if (answered) return;
+    answered = true;
+    const question = filteredQuiz[currentQuestionIndex];
+    const correctIndex = question.answer;
+    choicesElem.querySelectorAll("button").forEach(btn => btn.disabled = true);
+    choicesElem.querySelectorAll("button")[correctIndex].classList.replace("btn-outline-danger", "btn-success");
+    resultElem.textContent = `時間切れ！正解は「${question.choices[correctIndex]}」`;
+    resultElem.className = "text-center fs-5 fw-bold text-danger";
+    nextBtn.style.display = "block";
 }
 
-// 最終結果表示
+// === 結果・ランキング表示 ===
 function showFinalResult() {
-  const percentage = Math.round((correctCount / filteredQuiz.length) * 100);
-  const rankInfo = getRankInfo(percentage);
+    const total = filteredQuiz.length;
+    const percentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
+    const rankInfo = getRankInfo(percentage);
 
-  // 結果をランキングに追加
-  const result = {
-    score: `${correctCount}/${filteredQuiz.length}`,
-    percentage: percentage,
-    rank: rankInfo.rank,
-    timestamp: new Date().toLocaleString('ja-JP')
-  };
-
-  rankingData.unshift(result);
-  if (rankingData.length > 5) {
-    rankingData = rankingData.slice(0, 5);
-  }
-
-  // モーダルに結果を表示
-  finalScoreElem.textContent = `${correctCount}/${filteredQuiz.length}問正解`;
-  finalPercentElem.textContent = percentage;
-  finalRankElem.textContent = rankInfo.rank;
-  finalRankElem.className = `badge ${rankInfo.class}`;
-
-  // ランキングリストを更新
-  updateRankingList();
-  updateModalRankingList();
-
-  // モーダルを表示
-  resultModal.show();
+    finalScoreElem.textContent = `${correctCount} / ${total} 問正解`;
+    finalPercentElem.textContent = percentage;
+    finalRankElem.textContent = rankInfo.rank;
+    finalRankElem.className = `badge ${rankInfo.class}`;
+    
+    saveResultToRanking(percentage);
+    updateRankingList(modalRankingListElem);
+    updateRankingList(rankingListElem);
+    
+    resultModal.show();
 }
 
-// ランキングリスト更新
-function updateRankingList() {
-  rankingListElem.innerHTML = "";
-  
-  if (rankingData.length === 0) {
-    const li = document.createElement("li");
-    li.className = "list-group-item text-center";
-    li.textContent = "まだデータがありません";
-    rankingListElem.appendChild(li);
-    return;
-  }
-
-  rankingData.forEach((data, index) => {
-    const li = document.createElement("li");
-    li.className = "list-group-item d-flex justify-content-between align-items-center";
-    
-    const rankInfo = getRankInfo(data.percentage);
-    li.innerHTML = `
-      <span>${index + 1}位: ${data.score} (${data.percentage}%)</span>
-      <span class="badge ${rankInfo.class}">${data.rank}</span>
-    `;
-    
-    rankingListElem.appendChild(li);
-  });
+function saveResultToRanking(percentage) {
+    const result = {
+        score: `${correctCount}/${filteredQuiz.length}`,
+        percentage: percentage,
+        timestamp: new Date().toLocaleString('ja-JP')
+    };
+    rankingData.unshift(result);
+    rankingData = rankingData.slice(0, 5); // 最新5件に絞る
+    localStorage.setItem('quizRankingData', JSON.stringify(rankingData));
 }
 
-// モーダル内ランキングリスト更新
-function updateModalRankingList() {
-  modalRankingListElem.innerHTML = "";
-  
-  if (rankingData.length === 0) {
-    const li = document.createElement("li");
-    li.className = "list-group-item text-center";
-    li.textContent = "まだデータがありません";
-    modalRankingListElem.appendChild(li);
-    return;
-  }
+function loadRanking() {
+    const savedData = localStorage.getItem('quizRankingData');
+    if (savedData) {
+        rankingData = JSON.parse(savedData);
+    }
+}
 
-  rankingData.forEach((data, index) => {
-    const li = document.createElement("li");
-    li.className = "list-group-item d-flex justify-content-between align-items-center";
-    
-    const rankInfo = getRankInfo(data.percentage);
-    li.innerHTML = `
-      <span>${index + 1}位: ${data.score} (${data.percentage}%)</span>
-      <span class="badge ${rankInfo.class}">${data.rank}</span>
-    `;
-    
-    modalRankingListElem.appendChild(li);
-  });
+function updateRankingList(listElement) {
+    listElement.innerHTML = "";
+    if (rankingData.length === 0) {
+        listElement.innerHTML = `<li class="list-group-item text-center text-muted">まだデータがありません</li>`;
+        return;
+    }
+    rankingData.forEach(data => {
+        const li = document.createElement("li");
+        const rankInfo = getRankInfo(data.percentage);
+        li.className = "list-group-item d-flex justify-content-between align-items-center";
+        li.innerHTML = `
+            <div>
+                <span>${data.score} (${data.percentage}%)</span>
+                <small class="text-muted d-block">${data.timestamp}</small>
+            </div>
+            <span class="badge ${rankInfo.class}">${rankInfo.rank}</span>`;
+        listElement.appendChild(li);
+    });
 }
