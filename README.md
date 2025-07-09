@@ -1,1 +1,1 @@
-fzm式工事担任者対策アプリ CHUTORO
+fzm式テスト対策アプリ CHUTORO
