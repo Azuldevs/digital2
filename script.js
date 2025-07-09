@@ -1,7 +1,7 @@
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 // ★ ここに、ステップ2でコピーしたウェブアプリのURLを貼り付けてください ★
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-const SPREADSHEET_URL = "ここにウェブアプリのURLを貼り付け";
+const SPREADSHEET_URL = "https://script.google.com/a/macros/neg.edu.pref.shizuoka.jp/s/AKfycbzyJ4MGLH1cb5-wALwnT-FPdYeELV5RpvVOgRXEL3RpSqsKWvuvrSMFfX4KgQr9l4UEgw/exec";
 
 // === DOM要素 ===
 const homeScreen = document.getElementById("home-screen");
