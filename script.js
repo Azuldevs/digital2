@@ -16,7 +16,7 @@ const firebaseConfig = {
   messagingSenderId: "624230250836",
   appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1"
 };
-const ADMIN_PASSWORD = "your_secret_password"; // 管理者用パスワードを設定
+const ADMIN_PASSWORD = "amaebiroll1234"; // 管理者用パスワードを設定
 const ADMIN_NAME = "Admin"; // 管理者の名前を設定
 
 // Firebaseの初期化
