@@ -18,7 +18,7 @@ const firebaseConfig = {
 };
 
 // ★★★ ランキングモードから除外する教科（公平性のためコード内で固定） ★★★
-const RANKING_EXCLUDED_SUBJECTS = ["例：専門分野A", "例：マニアッククイズ"];
+const RANKING_EXCLUDED_SUBJECTS = ["数学ⅤⅡ"];
 
 // Firebaseの初期化
 firebase.initializeApp(firebaseConfig);
