@@ -8,14 +8,14 @@ const SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbx6BbHepIwv_JCC
 // ★ Firebaseの設定 (あとで自分の情報に書き換える) ★
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_AUTH_DOMAIN",
-  databaseURL: "YOUR_DATABASE_URL",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_STORAGE_BUCKET",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
-};
+    apiKey: "AIzaSyCHeaclJ4ItmRYnhny8Y7kLv7vKvG0wSNA",
+    authDomain: "amebroll.firebaseapp.com",
+    projectId: "amebroll",
+    storageBucket: "amebroll.firebasestorage.app",
+    messagingSenderId: "624230250836",
+    appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1",
+    measurementId: "G-GVP190HP3G"
+  };
 
 // Firebaseの初期化
 firebase.initializeApp(firebaseConfig);
