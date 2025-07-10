@@ -16,8 +16,6 @@ const firebaseConfig = {
   messagingSenderId: "624230250836",
   appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1"
 };
-const ADMIN_PASSWORD = "amaebiroll1234"; // 管理者用パスワードを設定
-const ADMIN_NAME = "Admin"; // 管理者の名前を設定
 
 // Firebaseの初期化
 firebase.initializeApp(firebaseConfig);
@@ -31,6 +29,7 @@ const questionTextElem = document.getElementById("question-text");
 const choicesElem = document.getElementById("choices");
 const resultElem = document.getElementById("result");
 const nextBtn = document.getElementById("next-button");
+const skipBtn = document.getElementById("skip-btn");
 const progressElem = document.getElementById("progress");
 const difficultyElem = document.getElementById("difficulty");
 const timerBarElem = document.getElementById("timer-bar");
@@ -39,16 +38,19 @@ const startBtn = document.getElementById("start-btn");
 const randomBtn = document.getElementById("random-btn");
 const rankingModeBtn = document.getElementById("ranking-mode-btn");
 const retryBtn = document.getElementById("retry-btn");
-const adminBtn = document.getElementById("admin-btn");
+const settingsBtn = document.getElementById("settings-btn");
 const subjectSelect = document.getElementById("subject-select");
 const questionCountSelect = document.getElementById("question-count");
 const customQuestionCountInput = document.getElementById("custom-question-count");
 const rankingListElem = document.getElementById("ranking-list");
 const modalRankingListElem = document.getElementById("modal-ranking-list");
+const exclusionListElem = document.getElementById("exclusion-list");
 const finalScoreElem = document.getElementById("final-score");
 const finalRankInfoElem = document.getElementById("final-rank-info");
 const resultModalEl = document.getElementById('resultModal');
 const resultModal = new bootstrap.Modal(resultModalEl);
+const settingsModalEl = document.getElementById('settingsModal');
+const settingsModal = new bootstrap.Modal(settingsModalEl);
 
 
 // === 状態変数 ===
@@ -62,6 +64,7 @@ const TIME_LIMIT = 30;
 let answered = false;
 let localRankingData = [];
 let incorrectQuestions = [];
+let excludedSubjects = [];
 let isRankingMode = false;
 let isRetryMode = false;
 
@@ -76,6 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     randomBtn.disabled = true;
     rankingModeBtn.disabled = true;
     retryBtn.disabled = true;
+    settingsBtn.disabled = true;
 
     try {
         const response = await fetch(SPREADSHEET_URL);
@@ -92,8 +96,10 @@ document.addEventListener('DOMContentLoaded', async () => {
         startBtn.disabled = false;
         randomBtn.disabled = false;
         rankingModeBtn.disabled = false;
+        settingsBtn.disabled = false;
     }
 
+    loadExcludedSubjects();
     loadLocalRanking();
     updateLocalRankingList(modalRankingListElem);
     updateFirebaseRankingList();
@@ -106,7 +112,8 @@ function initializeEventListeners() {
     randomBtn.addEventListener("click", handleRandomMode);
     rankingModeBtn.addEventListener("click", handleRankingMode);
     retryBtn.addEventListener("click", handleRetryMode);
-    adminBtn.addEventListener("click", handleAdminAction);
+    settingsBtn.addEventListener("click", openSettingsModal);
+    skipBtn.addEventListener("click", handleSkip);
     nextBtn.addEventListener("click", handleNext);
 
     questionCountSelect.addEventListener("change", () => {
@@ -188,18 +195,20 @@ function handleStart() {
 function handleRandomMode() {
     isRankingMode = false;
     isRetryMode = false;
-    filteredQuiz = shuffleArray([...quizData]);
+    const availableQuizzes = quizData.filter(q => !excludedSubjects.includes(q.subject));
+    filteredQuiz = shuffleArray(availableQuizzes);
     startQuiz();
 }
 
 function handleRankingMode() {
     isRankingMode = true;
     isRetryMode = false;
-    const hardQuizzes = quizData.filter(q => q.difficulty === '難しい');
+    const availableQuizzes = quizData.filter(q => !excludedSubjects.includes(q.subject));
+    const hardQuizzes = availableQuizzes.filter(q => q.difficulty === '難しい');
     const questionCount = 10;
 
     if (hardQuizzes.length < questionCount) {
-        alert(`難易度「難しい」の問題が${questionCount}問未満のため、ランキングモードを開始できません。`);
+        alert(`難易度「難しい」の問題（除外教科を除く）が${questionCount}問未満のため、ランキングモードを開始できません。`);
         return;
     }
     filteredQuiz = shuffleArray(hardQuizzes).slice(0, questionCount);
@@ -234,6 +243,10 @@ function startQuiz() {
 
     homeScreen.classList.add("d-none");
     quizScreen.classList.remove("d-none");
+    skipBtn.style.display = 'block';
+    skipBtn.disabled = isRankingMode;
+    nextBtn.style.display = 'none';
+
     currentQuestionIndex = 0;
     correctCount = 0;
     rankingScore = 0;
@@ -243,6 +256,7 @@ function startQuiz() {
 function showQuestion() {
     if (timerInterval) clearInterval(timerInterval);
     answered = false;
+    skipBtn.disabled = isRankingMode;
     nextBtn.style.display = "none";
     resultElem.textContent = "";
 
@@ -253,8 +267,9 @@ function showQuestion() {
     difficultyElem.className = `badge ${difficultyClasses[currentQuestion.difficulty] || "bg-secondary"}`;
     
     choicesElem.innerHTML = "";
-    const choices = shuffleArray(currentQuestion.choices);
-    choices.forEach(choice => {
+    // 選択肢をシャッフル
+    const shuffledChoices = shuffleArray(currentQuestion.choices);
+    shuffledChoices.forEach(choice => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "btn btn-outline-danger";
@@ -270,6 +285,7 @@ function handleAnswer(selectedChoice, question) {
     if (answered) return;
     answered = true;
     clearInterval(timerInterval);
+    skipBtn.disabled = true;
 
     const buttons = choicesElem.querySelectorAll("button");
     const correctChoice = question.choices[question.answer];
@@ -331,6 +347,33 @@ function handleTimeUp() {
     if (isRankingMode) {
         rankingScore -= 1;
     }
+    skipBtn.disabled = true;
+    nextBtn.style.display = "block";
+}
+
+function handleSkip() {
+    if (answered) return;
+    answered = true;
+    clearInterval(timerInterval);
+
+    const question = filteredQuiz[currentQuestionIndex];
+    const correctChoice = question.choices[question.answer];
+
+    choicesElem.querySelectorAll("button").forEach(btn => {
+        btn.disabled = true;
+        if (btn.textContent === correctChoice) {
+            btn.classList.replace("btn-outline-danger", "btn-success");
+        }
+    });
+
+    resultElem.textContent = `スキップしました。答えは「${correctChoice}」`;
+    resultElem.className = "text-center fs-5 fw-bold text-info"; // 青色で表示
+
+    if (!isRetryMode) {
+        incorrectQuestions.push(question);
+    }
+
+    skipBtn.disabled = true;
     nextBtn.style.display = "block";
 }
 
@@ -370,6 +413,7 @@ function startTimer() {
 // === 結果・ランキング表示 ===
 function showFinalResult() {
     finalRankInfoElem.innerHTML = "";
+    skipBtn.style.display = 'none';
 
     if (!isRetryMode && incorrectQuestions.length > 0) {
         const existingIncorrect = JSON.parse(localStorage.getItem('incorrectQuestions') || '[]');
@@ -458,12 +502,8 @@ function saveResultToFirebase(name, score) {
         score: score,
         timestamp: firebase.database.ServerValue.TIMESTAMP
     };
-    if (name === ADMIN_NAME) {
-        data.isAdmin = true;
-    }
     newRankRef.set(data).then(() => {
         console.log("ランキングを保存しました。");
-        // updateFirebaseRankingList() は ref.on() により自動更新される
     }).catch(error => {
         console.error("ランキングの保存に失敗しました:", error);
     });
@@ -488,11 +528,10 @@ function updateFirebaseRankingList() {
             const li = document.createElement("li");
             li.className = "list-group-item d-flex justify-content-between align-items-center";
             const date = new Date(data.timestamp).toLocaleString('ja-JP');
-            const nameClass = data.isAdmin ? 'text-danger fw-bold' : '';
 
             li.innerHTML = `
                 <div>
-                    <span class="${nameClass}">${index + 1}. ${data.name}</span>
+                    <span>${index + 1}. ${data.name}</span>
                     <small class="text-muted d-block">${date}</small>
                 </div>
                 <span class="badge bg-primary rounded-pill fs-6">${data.score} pt</span>`;
@@ -501,26 +540,44 @@ function updateFirebaseRankingList() {
     });
 }
 
-// --- 管理者機能 ---
-function handleAdminAction() {
-    const password = prompt("管理者用パスワードを入力してください:");
-    if (password === ADMIN_PASSWORD) {
-        if (confirm("本当にランキングをすべて削除しますか？この操作は元に戻せません。")) {
-            deleteRankingData();
-        }
-    } else if (password) {
-        alert("パスワードが違います。");
-    }
+
+// --- 設定機能 ---
+function openSettingsModal() {
+    exclusionListElem.innerHTML = "";
+    const subjects = [...new Set(quizData.map(q => q.subject).filter(Boolean))];
+    subjects.sort();
+
+    subjects.forEach(subject => {
+        const isChecked = excludedSubjects.includes(subject);
+        const div = document.createElement('div');
+        div.className = 'form-check';
+        div.innerHTML = `
+            <input class="form-check-input" type="checkbox" value="${subject}" id="exclude-${subject}" ${isChecked ? 'checked' : ''}>
+            <label class="form-check-label" for="exclude-${subject}">
+                ${subject}
+            </label>
+        `;
+        div.querySelector('input').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                excludedSubjects.push(subject);
+            } else {
+                excludedSubjects = excludedSubjects.filter(s => s !== subject);
+            }
+            saveExcludedSubjects();
+        });
+        exclusionListElem.appendChild(div);
+    });
+
+    settingsModal.show();
 }
 
-function deleteRankingData() {
-    database.ref('rankings').remove()
-        .then(() => {
-            alert("ランキングを削除しました。");
-            console.log("ランキングデータを削除しました。");
-        })
-        .catch(error => {
-            alert("ランキングの削除に失敗しました。");
-            console.error("ランキングの削除に失敗しました:", error);
-        });
+function saveExcludedSubjects() {
+    localStorage.setItem('excludedSubjects', JSON.stringify(excludedSubjects));
+}
+
+function loadExcludedSubjects() {
+    const savedData = localStorage.getItem('excludedSubjects');
+    if (savedData) {
+        excludedSubjects = JSON.parse(savedData);
+    }
 }
