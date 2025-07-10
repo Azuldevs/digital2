@@ -3,19 +3,21 @@
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 const SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbx6BbHepIwv_JCCBQiD1-JQPE7rj7eLAJQ564JRoZZmLiHWbW1kQiZnlv8DG6wESLdRrA/exec";
 
-
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-// ★ Firebaseの設定 (あとで自分の情報に書き換える) ★
-// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+// ★ 定数設定 (自分の情報に書き換える)          ★
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 const firebaseConfig = {
-    apiKey: "AIzaSyCHeaclJ4ItmRYnhny8Y7kLv7vKvG0wSNA",
-    authDomain: "amebroll.firebaseapp.com",
-    projectId: "amebroll",
-    storageBucket: "amebroll.firebasestorage.app",
-    messagingSenderId: "624230250836",
-    appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1",
-    measurementId: "G-GVP190HP3G"
-  };
+  // あなたのFirebaseプロジェクトの設定をここに貼り付け
+  apiKey: "AIzaSyCHeaclJ4ItmRYnhny8Y7kLv7vKvG0wSNA",
+  authDomain: "amebroll.firebaseapp.com",
+  databaseURL: "https://amebroll-default-rtdb.firebaseio.com",
+  projectId: "amebroll",
+  storageBucket: "amebroll.appspot.com",
+  messagingSenderId: "624230250836",
+  appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1"
+};
+const ADMIN_PASSWORD = "your_secret_password"; // 管理者用パスワードを設定
+const ADMIN_NAME = "Admin"; // 管理者の名前を設定
 
 // Firebaseの初期化
 firebase.initializeApp(firebaseConfig);
@@ -36,6 +38,8 @@ const timerTextElem = document.getElementById("timer-text");
 const startBtn = document.getElementById("start-btn");
 const randomBtn = document.getElementById("random-btn");
 const rankingModeBtn = document.getElementById("ranking-mode-btn");
+const retryBtn = document.getElementById("retry-btn");
+const adminBtn = document.getElementById("admin-btn");
 const subjectSelect = document.getElementById("subject-select");
 const questionCountSelect = document.getElementById("question-count");
 const customQuestionCountInput = document.getElementById("custom-question-count");
@@ -52,12 +56,14 @@ let quizData = [];
 let filteredQuiz = [];
 let currentQuestionIndex = 0;
 let correctCount = 0;
-let rankingScore = 0; // ランキングモード用のスコア
+let rankingScore = 0;
 let timerInterval = null;
 const TIME_LIMIT = 30;
 let answered = false;
-let localRankingData = []; // ローカルストレージ用のランキングデータ
-let isRankingMode = false; // ランキングモードかどうかを判定
+let localRankingData = [];
+let incorrectQuestions = [];
+let isRankingMode = false;
+let isRetryMode = false;
 
 
 // === 定数 ===
@@ -69,6 +75,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     startBtn.disabled = true;
     randomBtn.disabled = true;
     rankingModeBtn.disabled = true;
+    retryBtn.disabled = true;
 
     try {
         const response = await fetch(SPREADSHEET_URL);
@@ -89,14 +96,17 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     loadLocalRanking();
     updateLocalRankingList(modalRankingListElem);
-    updateFirebaseRankingList(); // Firebaseのランキングを読み込み
+    updateFirebaseRankingList();
     initializeEventListeners();
+    updateRetryButtonState();
 });
 
 function initializeEventListeners() {
     startBtn.addEventListener("click", handleStart);
     randomBtn.addEventListener("click", handleRandomMode);
     rankingModeBtn.addEventListener("click", handleRankingMode);
+    retryBtn.addEventListener("click", handleRetryMode);
+    adminBtn.addEventListener("click", handleAdminAction);
     nextBtn.addEventListener("click", handleNext);
 
     questionCountSelect.addEventListener("change", () => {
@@ -143,23 +153,21 @@ function shuffleArray(array) {
 // === クイズ制御 ===
 function handleStart() {
     isRankingMode = false;
+    isRetryMode = false;
 
-    // 1. 教科でフィルタリング
     const selectedSubject = subjectSelect.value;
     let tempQuiz = quizData;
     if (selectedSubject !== "all") {
         tempQuiz = quizData.filter(q => q.subject === selectedSubject);
     }
 
-    // 2. 難易度でフィルタリング
     const selectedDifficulties = [...document.querySelectorAll("#home-screen input[type=checkbox]:checked")].map(c => c.value);
     if (selectedDifficulties.length === 0) {
         alert("難易度を少なくとも1つ選択してください。");
         return;
     }
     tempQuiz = tempQuiz.filter(q => selectedDifficulties.includes(q.difficulty));
-
-    // 3. シャッフルして問題数を調整
+    
     filteredQuiz = shuffleArray(tempQuiz);
     let count = questionCountSelect.value;
     if (count === "custom") {
@@ -173,33 +181,57 @@ function handleStart() {
     } else if (count !== "all") {
         filteredQuiz = filteredQuiz.slice(0, parseInt(count, 10));
     }
-
+    
     startQuiz();
 }
 
 function handleRandomMode() {
     isRankingMode = false;
+    isRetryMode = false;
     filteredQuiz = shuffleArray([...quizData]);
     startQuiz();
 }
 
 function handleRankingMode() {
     isRankingMode = true;
+    isRetryMode = false;
     const hardQuizzes = quizData.filter(q => q.difficulty === '難しい');
-    if (hardQuizzes.length < 20) {
-        alert("難易度「難しい」の問題が20問未満のため、ランキングモードを開始できません。");
+    const questionCount = 10;
+
+    if (hardQuizzes.length < questionCount) {
+        alert(`難易度「難しい」の問題が${questionCount}問未満のため、ランキングモードを開始できません。`);
         return;
     }
-    filteredQuiz = shuffleArray(hardQuizzes).slice(0, 20);
+    filteredQuiz = shuffleArray(hardQuizzes).slice(0, questionCount);
     startQuiz();
 }
 
+function handleRetryMode() {
+    const savedIncorrectQuestions = JSON.parse(localStorage.getItem('incorrectQuestions') || '[]');
+    if (savedIncorrectQuestions.length === 0) {
+        alert("再挑戦できる問題がありません。");
+        return;
+    }
+
+    isRankingMode = false;
+    isRetryMode = true;
+    filteredQuiz = shuffleArray(savedIncorrectQuestions);
+
+    localStorage.removeItem('incorrectQuestions');
+    updateRetryButtonState();
+    startQuiz();
+}
 
 function startQuiz() {
     if (filteredQuiz.length === 0) {
         alert("出題できる問題がありません。条件を変更して再度お試しください。");
         return;
     }
+
+    if (!isRetryMode) {
+        incorrectQuestions = [];
+    }
+
     homeScreen.classList.add("d-none");
     quizScreen.classList.remove("d-none");
     currentQuestionIndex = 0;
@@ -219,45 +251,57 @@ function showQuestion() {
     progressElem.textContent = `${currentQuestionIndex + 1} / ${filteredQuiz.length}`;
     difficultyElem.textContent = currentQuestion.difficulty;
     difficultyElem.className = `badge ${difficultyClasses[currentQuestion.difficulty] || "bg-secondary"}`;
-
+    
     choicesElem.innerHTML = "";
-    currentQuestion.choices.forEach((choice, idx) => {
+    const choices = shuffleArray(currentQuestion.choices);
+    choices.forEach(choice => {
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "btn btn-outline-danger";
         btn.textContent = choice;
-        btn.addEventListener("click", () => handleAnswer(idx, currentQuestion));
+        btn.addEventListener("click", () => handleAnswer(choice, currentQuestion));
         choicesElem.appendChild(btn);
     });
-
+    
     startTimer();
 }
 
-function handleAnswer(selectedIndex, question) {
+function handleAnswer(selectedChoice, question) {
     if (answered) return;
     answered = true;
     clearInterval(timerInterval);
 
     const buttons = choicesElem.querySelectorAll("button");
-    const correctIndex = question.answer;
-    buttons.forEach(btn => btn.disabled = true);
-    buttons[correctIndex].classList.replace("btn-outline-danger", "btn-success");
+    const correctChoice = question.choices[question.answer];
+
+    buttons.forEach(btn => {
+        btn.disabled = true;
+        if (btn.textContent === correctChoice) {
+            btn.classList.replace("btn-outline-danger", "btn-success");
+        }
+    });
 
     const remainingTime = parseInt(timerTextElem.textContent);
 
-    if (selectedIndex === correctIndex) {
+    if (selectedChoice === correctChoice) {
         correctCount++;
         resultElem.textContent = "正解！";
         resultElem.className = "text-center fs-5 fw-bold text-success";
         if (isRankingMode) {
             if (remainingTime >= 20) rankingScore += 2;
             else if (remainingTime >= 10) rankingScore += 1;
-            // 9秒以下は0点
         }
     } else {
-        buttons[selectedIndex]?.classList.replace("btn-outline-danger", "btn-danger");
-        resultElem.textContent = `不正解… 正解は「${question.choices[correctIndex]}」`;
+        buttons.forEach(btn => {
+            if (btn.textContent === selectedChoice) {
+                btn.classList.replace("btn-outline-danger", "btn-danger");
+            }
+        });
+        resultElem.textContent = `不正解… 正解は「${correctChoice}」`;
         resultElem.className = "text-center fs-5 fw-bold text-danger";
+        if (!isRetryMode) {
+            incorrectQuestions.push(question);
+        }
         if (isRankingMode) {
             rankingScore -= 1;
         }
@@ -269,11 +313,21 @@ function handleTimeUp() {
     if (answered) return;
     answered = true;
     const question = filteredQuiz[currentQuestionIndex];
-    const correctIndex = question.answer;
-    choicesElem.querySelectorAll("button").forEach(btn => btn.disabled = true);
-    choicesElem.querySelectorAll("button")[correctIndex].classList.replace("btn-outline-danger", "btn-success");
-    resultElem.textContent = `時間切れ！正解は「${question.choices[correctIndex]}」`;
+    const correctChoice = question.choices[question.answer];
+    
+    choicesElem.querySelectorAll("button").forEach(btn => {
+        btn.disabled = true;
+        if (btn.textContent === correctChoice) {
+            btn.classList.replace("btn-outline-danger", "btn-success");
+        }
+    });
+
+    resultElem.textContent = `時間切れ！正解は「${correctChoice}」`;
     resultElem.className = "text-center fs-5 fw-bold text-danger";
+    
+    if (!isRetryMode) {
+        incorrectQuestions.push(question);
+    }
     if (isRankingMode) {
         rankingScore -= 1;
     }
@@ -315,14 +369,25 @@ function startTimer() {
 
 // === 結果・ランキング表示 ===
 function showFinalResult() {
-    finalRankInfoElem.innerHTML = ""; // クリア
+    finalRankInfoElem.innerHTML = "";
+
+    if (!isRetryMode && incorrectQuestions.length > 0) {
+        const existingIncorrect = JSON.parse(localStorage.getItem('incorrectQuestions') || '[]');
+        const newIncorrect = [...existingIncorrect, ...incorrectQuestions];
+        const uniqueIncorrect = Array.from(new Set(newIncorrect.map(q => q.question)))
+                                   .map(question => newIncorrect.find(q => q.question === question));
+        localStorage.setItem('incorrectQuestions', JSON.stringify(uniqueIncorrect));
+    }
+    updateRetryButtonState();
 
     if (isRankingMode) {
-        const name = prompt("ランキングに登録する名前を入力してください（10文字以内）", "名無しさん");
-        const finalName = name ? name.slice(0, 10) : "名無しさん";
         finalScoreElem.textContent = `最終スコア: ${rankingScore}点`;
-        saveResultToFirebase(finalName, rankingScore);
-        updateLocalRankingList(modalRankingListElem); // 通常モードのランキングも表示
+        resultModal.show();
+        resultModalEl.addEventListener('shown.bs.modal', () => {
+            const name = prompt("ランキングに登録する名前を入力してください（10文字以内）", "名無しさん");
+            const finalName = name ? name.slice(0, 10) : "名無しさん";
+            saveResultToFirebase(finalName, rankingScore);
+        }, { once: true });
     } else {
         const total = filteredQuiz.length;
         const percentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
@@ -336,10 +401,15 @@ function showFinalResult() {
 
         saveResultToLocal(percentage);
         updateLocalRankingList(modalRankingListElem);
+        resultModal.show();
     }
-
-    resultModal.show();
 }
+
+function updateRetryButtonState() {
+    const savedIncorrectQuestions = JSON.parse(localStorage.getItem('incorrectQuestions') || '[]');
+    retryBtn.disabled = savedIncorrectQuestions.length === 0;
+}
+
 
 // --- LocalStorage Ranking ---
 function saveResultToLocal(percentage) {
@@ -349,7 +419,7 @@ function saveResultToLocal(percentage) {
         timestamp: new Date().toLocaleString('ja-JP')
     };
     localRankingData.unshift(result);
-    localRankingData = localRankingData.slice(0, 5); // 最新5件に絞る
+    localRankingData = localRankingData.slice(0, 5);
     localStorage.setItem('quizRankingData', JSON.stringify(localRankingData));
 }
 
@@ -383,13 +453,17 @@ function updateLocalRankingList(listElement) {
 // --- Firebase Ranking ---
 function saveResultToFirebase(name, score) {
     const newRankRef = database.ref('rankings').push();
-    newRankRef.set({
+    const data = {
         name: name,
         score: score,
         timestamp: firebase.database.ServerValue.TIMESTAMP
-    }).then(() => {
+    };
+    if (name === ADMIN_NAME) {
+        data.isAdmin = true;
+    }
+    newRankRef.set(data).then(() => {
         console.log("ランキングを保存しました。");
-        updateFirebaseRankingList(); // 保存後にランキングを更新
+        // updateFirebaseRankingList() は ref.on() により自動更新される
     }).catch(error => {
         console.error("ランキングの保存に失敗しました:", error);
     });
@@ -397,7 +471,7 @@ function saveResultToFirebase(name, score) {
 
 function updateFirebaseRankingList() {
     const rankingRef = database.ref('rankings').orderByChild('score').limitToLast(10);
-    rankingRef.once('value', (snapshot) => {
+    rankingRef.on('value', (snapshot) => {
         rankingListElem.innerHTML = "";
         if (!snapshot.exists()) {
             rankingListElem.innerHTML = `<li class="list-group-item text-center text-muted">まだデータがありません</li>`;
@@ -408,20 +482,45 @@ function updateFirebaseRankingList() {
         snapshot.forEach(childSnapshot => {
             rankings.push({ key: childSnapshot.key, ...childSnapshot.val() });
         });
-        // スコアが高い順に並び替え
         rankings.reverse();
 
         rankings.forEach((data, index) => {
             const li = document.createElement("li");
             li.className = "list-group-item d-flex justify-content-between align-items-center";
             const date = new Date(data.timestamp).toLocaleString('ja-JP');
+            const nameClass = data.isAdmin ? 'text-danger fw-bold' : '';
+
             li.innerHTML = `
                 <div>
-                    <span class="fw-bold">${index + 1}. ${data.name}</span>
+                    <span class="${nameClass}">${index + 1}. ${data.name}</span>
                     <small class="text-muted d-block">${date}</small>
                 </div>
                 <span class="badge bg-primary rounded-pill fs-6">${data.score} pt</span>`;
             rankingListElem.appendChild(li);
         });
     });
+}
+
+// --- 管理者機能 ---
+function handleAdminAction() {
+    const password = prompt("管理者用パスワードを入力してください:");
+    if (password === ADMIN_PASSWORD) {
+        if (confirm("本当にランキングをすべて削除しますか？この操作は元に戻せません。")) {
+            deleteRankingData();
+        }
+    } else if (password) {
+        alert("パスワードが違います。");
+    }
+}
+
+function deleteRankingData() {
+    database.ref('rankings').remove()
+        .then(() => {
+            alert("ランキングを削除しました。");
+            console.log("ランキングデータを削除しました。");
+        })
+        .catch(error => {
+            alert("ランキングの削除に失敗しました。");
+            console.error("ランキングの削除に失敗しました:", error);
+        });
 }
