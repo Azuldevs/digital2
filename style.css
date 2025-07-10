@@ -89,7 +89,7 @@ body {
     color: var(--text-primary);
 }
 
-#final-rank.badge {
+#final-rank-info .badge {
     padding: 0.5em 0.8em;
     font-size: 1.5rem;
 }
