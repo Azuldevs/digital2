@@ -1,5 +1,5 @@
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-// ★ ここに、ステップ2でコピーしたウェブアプリのURLを貼り付けてください ★
+// ★ ここに、スプレッドシートのウェブアプリURLを貼り付けてください ★
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 const SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbx6BbHepIwv_JCCBQiD1-JQPE7rj7eLAJQ564JRoZZmLiHWbW1kQiZnlv8DG6wESLdRrA/exec";
 
@@ -16,6 +16,9 @@ const firebaseConfig = {
   messagingSenderId: "624230250836",
   appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1"
 };
+
+// ★★★ ランキングモードから除外する教科（公平性のためコード内で固定） ★★★
+const RANKING_EXCLUDED_SUBJECTS = ["例：専門分野A", "例：マニアッククイズ"];
 
 // Firebaseの初期化
 firebase.initializeApp(firebaseConfig);
@@ -64,7 +67,7 @@ const TIME_LIMIT = 30;
 let answered = false;
 let localRankingData = [];
 let incorrectQuestions = [];
-let excludedSubjects = [];
+let excludedSubjects = []; // お任せモード用の除外教科
 let isRankingMode = false;
 let isRetryMode = false;
 
@@ -203,12 +206,12 @@ function handleRandomMode() {
 function handleRankingMode() {
     isRankingMode = true;
     isRetryMode = false;
-    const availableQuizzes = quizData.filter(q => !excludedSubjects.includes(q.subject));
+    const availableQuizzes = quizData.filter(q => !RANKING_EXCLUDED_SUBJECTS.includes(q.subject));
     const hardQuizzes = availableQuizzes.filter(q => q.difficulty === '難しい');
     const questionCount = 10;
 
     if (hardQuizzes.length < questionCount) {
-        alert(`難易度「難しい」の問題（除外教科を除く）が${questionCount}問未満のため、ランキングモードを開始できません。`);
+        alert(`ランキングモード対象の難易度「難しい」の問題が${questionCount}問未満のため、開始できません。`);
         return;
     }
     filteredQuiz = shuffleArray(hardQuizzes).slice(0, questionCount);
@@ -244,7 +247,6 @@ function startQuiz() {
     homeScreen.classList.add("d-none");
     quizScreen.classList.remove("d-none");
     skipBtn.style.display = 'block';
-    skipBtn.disabled = isRankingMode;
     nextBtn.style.display = 'none';
 
     currentQuestionIndex = 0;
@@ -256,6 +258,7 @@ function startQuiz() {
 function showQuestion() {
     if (timerInterval) clearInterval(timerInterval);
     answered = false;
+    skipBtn.style.display = 'block';
     skipBtn.disabled = isRankingMode;
     nextBtn.style.display = "none";
     resultElem.textContent = "";
@@ -268,7 +271,7 @@ function showQuestion() {
     
     choicesElem.innerHTML = "";
     // 選択肢をシャッフル
-    const shuffledChoices = shuffleArray(currentQuestion.choices);
+    const shuffledChoices = shuffleArray([...currentQuestion.choices]);
     shuffledChoices.forEach(choice => {
         const btn = document.createElement("button");
         btn.type = "button";
@@ -285,7 +288,7 @@ function handleAnswer(selectedChoice, question) {
     if (answered) return;
     answered = true;
     clearInterval(timerInterval);
-    skipBtn.disabled = true;
+    skipBtn.style.display = 'none';
 
     const buttons = choicesElem.querySelectorAll("button");
     const correctChoice = question.choices[question.answer];
@@ -328,6 +331,7 @@ function handleAnswer(selectedChoice, question) {
 function handleTimeUp() {
     if (answered) return;
     answered = true;
+    skipBtn.style.display = 'none';
     const question = filteredQuiz[currentQuestionIndex];
     const correctChoice = question.choices[question.answer];
     
@@ -347,14 +351,14 @@ function handleTimeUp() {
     if (isRankingMode) {
         rankingScore -= 1;
     }
-    skipBtn.disabled = true;
     nextBtn.style.display = "block";
 }
 
 function handleSkip() {
-    if (answered) return;
+    if (answered || isRankingMode) return;
     answered = true;
     clearInterval(timerInterval);
+    skipBtn.style.display = 'none';
 
     const question = filteredQuiz[currentQuestionIndex];
     const correctChoice = question.choices[question.answer];
@@ -367,13 +371,12 @@ function handleSkip() {
     });
 
     resultElem.textContent = `スキップしました。答えは「${correctChoice}」`;
-    resultElem.className = "text-center fs-5 fw-bold text-info"; // 青色で表示
+    resultElem.className = "text-center fs-5 fw-bold text-info";
 
     if (!isRetryMode) {
         incorrectQuestions.push(question);
     }
 
-    skipBtn.disabled = true;
     nextBtn.style.display = "block";
 }
 
@@ -528,7 +531,6 @@ function updateFirebaseRankingList() {
             const li = document.createElement("li");
             li.className = "list-group-item d-flex justify-content-between align-items-center";
             const date = new Date(data.timestamp).toLocaleString('ja-JP');
-
             li.innerHTML = `
                 <div>
                     <span>${index + 1}. ${data.name}</span>
@@ -559,7 +561,9 @@ function openSettingsModal() {
         `;
         div.querySelector('input').addEventListener('change', (e) => {
             if (e.target.checked) {
-                excludedSubjects.push(subject);
+                if (!excludedSubjects.includes(subject)) {
+                    excludedSubjects.push(subject);
+                }
             } else {
                 excludedSubjects = excludedSubjects.filter(s => s !== subject);
             }
