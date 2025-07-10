@@ -7,22 +7,25 @@ const SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbx6BbHepIwv_JCC
 // ★ 定数設定 (自分の情報に書き換える)          ★
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 const firebaseConfig = {
-  // あなたのFirebaseプロジェクトの設定をここに貼り付け
+  // あなたが貼り付けてくれた情報を元にしています
   apiKey: "AIzaSyCHeaclJ4ItmRYnhny8Y7kLv7vKvG0wSNA",
   authDomain: "amebroll.firebaseapp.com",
-  databaseURL: "https://amebroll-default-rtdb.firebaseio.com",
   projectId: "amebroll",
   storageBucket: "amebroll.appspot.com",
   messagingSenderId: "624230250836",
-  appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1"
-};
+  appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1",
 
-// ★★★ ランキングモードから除外する教科（公平性のためコード内で固定） ★★★
-const RANKING_EXCLUDED_SUBJECTS = ["数学ⅤⅡ"];
+  // ▼▼▼【重要】この行を追加してください！▼▼▼
+  databaseURL: "https://amebroll-default-rtdb.firebaseio.com" // ← ステップ1で調べたURLをここに書く
+};
 
 // Firebaseの初期化
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+
+// ★★★ ランキングモードから除外する教科（公平性のためコード内で固定） ★★★
+const RANKING_EXCLUDED_SUBJECTS = ["数学ⅤⅡ"];
+
 
 
 // === DOM要素 ===
