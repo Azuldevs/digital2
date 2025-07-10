@@ -11,8 +11,8 @@
 
 <main class="container my-4">
   <section id="home-screen" class="text-center">
-    <h1 class="mb-3">AmaebiRoll テスト対策アプリ</h1>
-    <p class="text-muted">Made by Fzm</p>
+    <h1 class="mb-3">AmaebiRoll  テスト対策</h1>
+    <p class="text-muted">Made by fzm</p>
 
     <div class="controls-wrapper mx-auto p-4 rounded-3 shadow-sm">
       <div class="row g-3">
@@ -28,8 +28,8 @@
           <select id="question-count" class="form-select">
             <option value="all">全問</option>
             <option value="5">5問</option>
-            <option value="10">10問</option>
-            <option value="20" selected>20問</option>
+            <option value="10" selected>10問</option>
+            <option value="20">20問</option>
             <option value="custom">カスタム</option>
           </select>
           <input type="number" id="custom-question-count" class="form-control mt-2 d-none" placeholder="問題数を入力" min="1">
@@ -57,6 +57,7 @@
       <button id="start-btn" class="btn btn-danger btn-lg">スタート</button>
       <button id="random-btn" class="btn btn-outline-danger btn-lg">お任せモード</button>
       <button id="ranking-mode-btn" class="btn btn-primary btn-lg">ランキングモード</button>
+      <button id="retry-btn" class="btn btn-warning btn-lg mt-2">間違えた問題に再挑戦</button>
     </div>
 
     <hr class="my-4">
@@ -75,7 +76,7 @@
           <span id="progress" class="fw-bold text-muted"></span>
           <span id="difficulty" class="badge"></span>
         </div>
-
+        
         <div class="progress mb-3" style="height: 20px;">
           <div id="timer-bar" class="progress-bar" role="progressbar" style="width: 100%;">
             <span id="timer-text">30</span>
@@ -85,7 +86,7 @@
         <p id="question-text" class="fs-5 fw-bold text-center my-4"></p>
         <div id="choices" class="d-grid gap-2 mb-3"></div>
         <p id="result" class="text-center fs-5 fw-bold mb-3"></p>
-
+        
         <div class="d-grid mt-4">
           <button id="next-button" class="btn btn-danger" style="display:none;">次の問題へ</button>
         </div>
@@ -93,6 +94,10 @@
     </div>
   </section>
 </main>
+
+<footer class="container text-center mt-4 pb-4">
+  <button id="admin-btn" class="btn btn-sm btn-outline-secondary">管理者用</button>
+</footer>
 
 <div class="modal fade" id="resultModal" tabindex="-1" aria-labelledby="resultModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
@@ -104,7 +109,7 @@
       <div class="modal-body text-center">
         <p class="fs-4">結果</p>
         <p id="final-score" class="fs-5"></p>
-        <p id="final-rank-info"></p>
+        <div id="final-rank-info"></div>
         <hr />
         <h6 class="mt-4">今回のセッションのランキング</h6>
         <ul id="modal-ranking-list" class="list-group list-group-flush"></ul>
