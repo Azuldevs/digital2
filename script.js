@@ -9,14 +9,15 @@ const SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbx6BbHepIwv_JCC
 // もう一度、Firebaseコンソールからコピーした設定情報が
 // 正確に貼り付けられているか、ご確認ください。
 const firebaseConfig = {
-  apiKey: "AIzaSyCHeaclJ4ItmRYnhny8Y7kLv7vKvG0wSNA",
-  authDomain: "amebroll.firebaseapp.com",
-  databaseURL: "https://amebroll-default-rtdb.firebaseio.com",
-  projectId: "amebroll",
-  storageBucket: "amebroll.appspot.com",
-  messagingSenderId: "624230250836",
-  appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1"
-};
+    apiKey: "AIzaSyCHeaclJ4ItmRYnhny8Y7kLv7vKvG0wSNA",
+    authDomain: "amebroll.firebaseapp.com",
+    databaseURL: "https://amebroll-default-rtdb.firebaseio.com",
+    projectId: "amebroll",
+    storageBucket: "amebroll.firebasestorage.app",
+    messagingSenderId: "624230250836",
+    appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1",
+    measurementId: "G-GVP190HP3G"
+  };
 
 // === グローバル変数 ===
 // 初期化後に代入されるため、ここでは宣言のみ
