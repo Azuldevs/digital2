@@ -1,21 +1,23 @@
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-// ★ ここに、スプレッドシートのウェブアプリURLを貼り付けてください ★
+// ★ ここに、【クイズデータ取得用】のスプレッドシートのウェブアプリURLを貼り付けてください ★
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 const SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbx6BbHepIwv_JCCBQiD1-JQPE7rj7eLAJQ564JRoZZmLiHWbW1kQiZnlv8DG6wESLdRrA/exec";
 
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+// ★ ここに、【Gemini解説生成用】のGASのウェブアプリURLを貼り付けてください ★
+// ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+const GEMINI_EXPLAIN_URL = "https://script.google.com/macros/s/AKfycbysthr3WLLPouAeoZoKGwGz7U_Wc_YNTB0NXg_f7z766s-u3ASaAZHGDaajDkJbdjnIYA/exec";
+
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
-// ★ 定数設定 (自分の情報に書き換える)          ★
+// ★ Firebase 定数設定 (自分の情報に書き換える)    ★
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 const firebaseConfig = {
-  // あなたが貼り付けてくれた情報を元にしています
   apiKey: "AIzaSyCHeaclJ4ItmRYnhny8Y7kLv7vKvG0wSNA",
   authDomain: "amebroll.firebaseapp.com",
   projectId: "amebroll",
   storageBucket: "amebroll.appspot.com",
   messagingSenderId: "624230250836",
   appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1",
-
-  // ▼▼▼【重要】この行を追加してください！▼▼▼
   databaseURL: "https://amebroll-default-rtdb.firebaseio.com"
 };
 
@@ -55,6 +57,10 @@ const resultModalEl = document.getElementById('resultModal');
 const resultModal = new bootstrap.Modal(resultModalEl);
 const settingsModalEl = document.getElementById('settingsModal');
 const settingsModal = new bootstrap.Modal(settingsModalEl);
+// ▼▼▼ ここから追加 ▼▼▼
+const explanationArea = document.getElementById("explanation-area");
+const explanationTextElem = document.getElementById("explanation-text");
+// ▲▲▲ ここまで追加 ▲▲▲
 
 
 // === 状態変数 ===
@@ -68,10 +74,9 @@ const TIME_LIMIT = 30;
 let answered = false;
 let localRankingData = [];
 let incorrectQuestions = [];
-let excludedSubjects = []; // お任せモード用の除外教科
+let excludedSubjects = [];
 let isRankingMode = false;
 let isRetryMode = false;
-
 
 // === 定数 ===
 const difficultyClasses = { "易しい": "bg-success", "普通": "bg-warning text-dark", "難しい": "bg-danger" };
@@ -160,25 +165,62 @@ function shuffleArray(array) {
     return shuffled;
 }
 
+// ▼▼▼ この関数をまるごと追加 ▼▼▼
+/**
+ * Geminiに問題の解説を問い合わせ、表示する関数
+ * @param {string} question - クイズの問題文
+ * @param {string} answer - 正解の選択肢の文字列
+ */
+async function fetchAndShowExplanation(question, answer) {
+  explanationArea.classList.remove("d-none");
+  explanationTextElem.innerHTML = "<em>解説を生成中です… しばらくお待ちください…</em>";
+
+  try {
+    const response = await fetch(GEMINI_EXPLAIN_URL, {
+      method: 'POST',
+      mode: 'cors', // CORSモードを追加
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: question, answer: answer }),
+      redirect: 'follow'
+    });
+
+    if (!response.ok) {
+      throw new Error(`サーバーとの通信に失敗しました。 status: ${response.status}`);
+    }
+    
+    const text = await response.text();
+    const data = JSON.parse(text);
+
+
+    if (data.status === "success") {
+      explanationTextElem.innerHTML = data.explanation.replace(/\n/g, '<br>');
+    } else {
+      throw new Error(`解説の生成に失敗しました: ${data.message}`);
+    }
+
+  } catch (error) {
+    console.error("解説の取得中にエラーが発生しました:", error);
+    explanationTextElem.innerHTML = "<em>解説の取得に失敗しました。</em>";
+  }
+}
+// ▲▲▲ この関数をまるごと追加 ▲▲▲
+
 
 // === クイズ制御 ===
 function handleStart() {
     isRankingMode = false;
     isRetryMode = false;
-
     const selectedSubject = subjectSelect.value;
     let tempQuiz = quizData;
     if (selectedSubject !== "all") {
         tempQuiz = quizData.filter(q => q.subject === selectedSubject);
     }
-
     const selectedDifficulties = [...document.querySelectorAll("#home-screen input[type=checkbox]:checked")].map(c => c.value);
     if (selectedDifficulties.length === 0) {
         alert("難易度を少なくとも1つ選択してください。");
         return;
     }
     tempQuiz = tempQuiz.filter(q => selectedDifficulties.includes(q.difficulty));
-    
     filteredQuiz = shuffleArray(tempQuiz);
     let count = questionCountSelect.value;
     if (count === "custom") {
@@ -192,7 +234,6 @@ function handleStart() {
     } else if (count !== "all") {
         filteredQuiz = filteredQuiz.slice(0, parseInt(count, 10));
     }
-    
     startQuiz();
 }
 
@@ -210,7 +251,6 @@ function handleRankingMode() {
     const availableQuizzes = quizData.filter(q => !RANKING_EXCLUDED_SUBJECTS.includes(q.subject));
     const hardQuizzes = availableQuizzes.filter(q => q.difficulty === '難しい');
     const questionCount = 10;
-
     if (hardQuizzes.length < questionCount) {
         alert(`ランキングモード対象の難易度「難しい」の問題が${questionCount}問未満のため、開始できません。`);
         return;
@@ -225,11 +265,9 @@ function handleRetryMode() {
         alert("再挑戦できる問題がありません。");
         return;
     }
-
     isRankingMode = false;
     isRetryMode = true;
     filteredQuiz = shuffleArray(savedIncorrectQuestions);
-
     localStorage.removeItem('incorrectQuestions');
     updateRetryButtonState();
     startQuiz();
@@ -240,16 +278,13 @@ function startQuiz() {
         alert("出題できる問題がありません。条件を変更して再度お試しください。");
         return;
     }
-
     if (!isRetryMode) {
         incorrectQuestions = [];
     }
-
     homeScreen.classList.add("d-none");
     quizScreen.classList.remove("d-none");
     skipBtn.style.display = 'block';
     nextBtn.style.display = 'none';
-
     currentQuestionIndex = 0;
     correctCount = 0;
     rankingScore = 0;
@@ -257,21 +292,23 @@ function startQuiz() {
 }
 
 function showQuestion() {
+    // ▼▼▼ ここから修正 ▼▼▼
+    explanationArea.classList.add("d-none");
+    explanationTextElem.textContent = "";
+    // ▲▲▲ ここまで修正 ▲▲▲
+
     if (timerInterval) clearInterval(timerInterval);
     answered = false;
     skipBtn.style.display = 'block';
     skipBtn.disabled = isRankingMode;
     nextBtn.style.display = "none";
     resultElem.textContent = "";
-
     const currentQuestion = filteredQuiz[currentQuestionIndex];
     questionTextElem.textContent = `Q${currentQuestionIndex + 1}: ${currentQuestion.question}`;
     progressElem.textContent = `${currentQuestionIndex + 1} / ${filteredQuiz.length}`;
     difficultyElem.textContent = currentQuestion.difficulty;
     difficultyElem.className = `badge ${difficultyClasses[currentQuestion.difficulty] || "bg-secondary"}`;
-    
     choicesElem.innerHTML = "";
-    // 選択肢をシャッフル
     const shuffledChoices = shuffleArray([...currentQuestion.choices]);
     shuffledChoices.forEach(choice => {
         const btn = document.createElement("button");
@@ -281,7 +318,6 @@ function showQuestion() {
         btn.addEventListener("click", () => handleAnswer(choice, currentQuestion));
         choicesElem.appendChild(btn);
     });
-    
     startTimer();
 }
 
@@ -290,19 +326,15 @@ function handleAnswer(selectedChoice, question) {
     answered = true;
     clearInterval(timerInterval);
     skipBtn.style.display = 'none';
-
     const buttons = choicesElem.querySelectorAll("button");
     const correctChoice = question.choices[question.answer];
-
     buttons.forEach(btn => {
         btn.disabled = true;
         if (btn.textContent === correctChoice) {
             btn.classList.replace("btn-outline-danger", "btn-success");
         }
     });
-
     const remainingTime = parseInt(timerTextElem.textContent);
-
     if (selectedChoice === correctChoice) {
         correctCount++;
         resultElem.textContent = "正解！";
@@ -327,6 +359,11 @@ function handleAnswer(selectedChoice, question) {
         }
     }
     nextBtn.style.display = "block";
+
+    // ▼▼▼ ここから修正 ▼▼▼
+    const questionText = question.question;
+    fetchAndShowExplanation(questionText, correctChoice);
+    // ▲▲▲ ここまで修正 ▲▲▲
 }
 
 function handleTimeUp() {
@@ -335,17 +372,14 @@ function handleTimeUp() {
     skipBtn.style.display = 'none';
     const question = filteredQuiz[currentQuestionIndex];
     const correctChoice = question.choices[question.answer];
-    
     choicesElem.querySelectorAll("button").forEach(btn => {
         btn.disabled = true;
         if (btn.textContent === correctChoice) {
             btn.classList.replace("btn-outline-danger", "btn-success");
         }
     });
-
     resultElem.textContent = `時間切れ！正解は「${correctChoice}」`;
     resultElem.className = "text-center fs-5 fw-bold text-danger";
-    
     if (!isRetryMode) {
         incorrectQuestions.push(question);
     }
@@ -353,6 +387,11 @@ function handleTimeUp() {
         rankingScore -= 1;
     }
     nextBtn.style.display = "block";
+    
+    // ▼▼▼ ここから修正 ▼▼▼
+    const questionText = question.question;
+    fetchAndShowExplanation(questionText, correctChoice);
+    // ▲▲▲ ここまで修正 ▲▲▲
 }
 
 function handleSkip() {
@@ -360,25 +399,25 @@ function handleSkip() {
     answered = true;
     clearInterval(timerInterval);
     skipBtn.style.display = 'none';
-
     const question = filteredQuiz[currentQuestionIndex];
     const correctChoice = question.choices[question.answer];
-
     choicesElem.querySelectorAll("button").forEach(btn => {
         btn.disabled = true;
         if (btn.textContent === correctChoice) {
             btn.classList.replace("btn-outline-danger", "btn-success");
         }
     });
-
     resultElem.textContent = `スキップしました。答えは「${correctChoice}」`;
     resultElem.className = "text-center fs-5 fw-bold text-info";
-
     if (!isRetryMode) {
         incorrectQuestions.push(question);
     }
-
     nextBtn.style.display = "block";
+
+    // ▼▼▼ ここから修正 ▼▼▼
+    const questionText = question.question;
+    fetchAndShowExplanation(questionText, correctChoice);
+    // ▲▲▲ ここまで修正 ▲▲▲
 }
 
 function handleNext() {
@@ -401,7 +440,6 @@ function startTimer() {
         else if (currentTime <= 10) timerBarElem.classList.add("bg-warning");
         else timerBarElem.classList.add("bg-success");
     };
-
     updateDisplay();
     timerInterval = setInterval(() => {
         currentTime--;
@@ -418,7 +456,6 @@ function startTimer() {
 function showFinalResult() {
     finalRankInfoElem.innerHTML = "";
     skipBtn.style.display = 'none';
-
     if (!isRetryMode && incorrectQuestions.length > 0) {
         const existingIncorrect = JSON.parse(localStorage.getItem('incorrectQuestions') || '[]');
         const newIncorrect = [...existingIncorrect, ...incorrectQuestions];
@@ -427,7 +464,6 @@ function showFinalResult() {
         localStorage.setItem('incorrectQuestions', JSON.stringify(uniqueIncorrect));
     }
     updateRetryButtonState();
-
     if (isRankingMode) {
         finalScoreElem.textContent = `最終スコア: ${rankingScore}点`;
         resultModal.show();
@@ -440,13 +476,11 @@ function showFinalResult() {
         const total = filteredQuiz.length;
         const percentage = total > 0 ? Math.round((correctCount / total) * 100) : 0;
         const rankInfo = getRankInfo(percentage);
-
         finalScoreElem.textContent = `${correctCount} / ${total} 問正解`;
         finalRankInfoElem.innerHTML = `
             <p>正答率: <strong class="fs-4">${percentage}</strong> %</p>
             <p>ランク: <span class="badge fs-3 ${rankInfo.class}">${rankInfo.rank}</span></p>
         `;
-
         saveResultToLocal(percentage);
         updateLocalRankingList(modalRankingListElem);
         resultModal.show();
@@ -521,13 +555,11 @@ function updateFirebaseRankingList() {
             rankingListElem.innerHTML = `<li class="list-group-item text-center text-muted">まだデータがありません</li>`;
             return;
         }
-
         const rankings = [];
         snapshot.forEach(childSnapshot => {
             rankings.push({ key: childSnapshot.key, ...childSnapshot.val() });
         });
         rankings.reverse();
-
         rankings.forEach((data, index) => {
             const li = document.createElement("li");
             li.className = "list-group-item d-flex justify-content-between align-items-center";
@@ -549,7 +581,6 @@ function openSettingsModal() {
     exclusionListElem.innerHTML = "";
     const subjects = [...new Set(quizData.map(q => q.subject).filter(Boolean))];
     subjects.sort();
-
     subjects.forEach(subject => {
         const isChecked = excludedSubjects.includes(subject);
         const div = document.createElement('div');
@@ -572,7 +603,6 @@ function openSettingsModal() {
         });
         exclusionListElem.appendChild(div);
     });
-
     settingsModal.show();
 }
 
