@@ -98,3 +98,13 @@ body {
 #modal-ranking-list .list-group-item {
     background-color: var(--bg-secondary);
 }
+
+/* ▼▼▼ ここから追加 ▼▼▼ */
+#explanation-area {
+    background-color: #e9ecef; /* 少し色をつけた背景 */
+    line-height: 1.6;
+}
+#explanation-area em {
+    color: var(--text-secondary);
+}
+/* ▲▲▲ ここまで追加 ▲▲▲ */
