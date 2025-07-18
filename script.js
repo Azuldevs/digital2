@@ -81,69 +81,57 @@ const difficultyClasses = { "易しい": "bg-success", "普通": "bg-warning tex
 
 // === 初期化処理 ===
 document.addEventListener('DOMContentLoaded', async () => {
-    // ボタンを初期状態（無効）にする
+    // 全ての操作ボタンを一旦無効化
     startBtn.disabled = true;
     randomBtn.disabled = true;
     rankingModeBtn.disabled = true;
     retryBtn.disabled = true;
     settingsBtn.disabled = true;
 
-    // --- 匿名認証の処理 ---
-    const auth = firebase.auth();
-    auth.onAuthStateChanged(async (user) => {
-        if (user) {
-            // 匿名ユーザーとしてサインイン成功
-            console.log("匿名ユーザーとしてサインインしました:", user.uid);
-            
-            // 認証が完了したら、Firebaseからランキングを読み込む
-            updateFirebaseRankingList();
-            
-            // ランキングモードボタンを有効化
-            rankingModeBtn.disabled = false;
-
-        } else {
-            // サインアウト状態
-            console.log("ユーザーはサインアウトしています。");
-        }
-    });
-
     try {
-        // まず匿名認証を開始
+        // --- ステップ1: Firebase匿名認証 ---
+        const auth = firebase.auth();
         await auth.signInAnonymously();
-    } catch (error) {
-        console.error("匿名認証に失敗しました:", error);
-        alert("認証サーバーへの接続に失敗しました。ページを再読み込みしてください。");
-        // 認証失敗時はランキング機能が使えないため、ボタンを無効のままにする
-        rankingModeBtn.textContent = "ランキング利用不可";
-    }
+        console.log("Firebase匿名認証に成功しました。");
 
-    // --- スプレッドシートからのデータ取得 ---
-    try {
+        // --- ステップ2: スプレッドシートからクイズデータを取得 ---
         const response = await fetch(SPREADSHEET_URL);
-        if (!response.ok) throw new Error(`Network response was not ok, status: ${response.status}`);
+        if (!response.ok) {
+            throw new Error(`スプレッドシートの取得に失敗しました: ${response.status}`);
+        }
         const data = await response.json();
-        if (data.error) throw new Error(data.error);
-        
+        if (data.error) {
+            throw new Error(data.error);
+        }
         quizData = data;
         populateSubjects();
         console.log("クイズデータをスプレッドシートから取得しました:", quizData);
+
+        // --- ステップ3: 全ての初期化処理を実行 ---
+        // Firebaseランキングの読み込み
+        updateFirebaseRankingList();
         
-        // データ取得が成功したら、主要なクイズボタンを有効化
+        // ローカルデータの読み込みとイベントリスナの設定
+        loadExcludedSubjects();
+        loadLocalRanking();
+        updateLocalRankingList(modalRankingListElem);
+        initializeEventListeners();
+        updateRetryButtonState();
+
+        // --- ステップ4: 全てのボタンを有効化 ---
         startBtn.disabled = false;
         randomBtn.disabled = false;
+        rankingModeBtn.disabled = false;
         settingsBtn.disabled = false;
+        // 注意: retryBtnはupdateRetryButtonState()によって制御される
+
+        console.log("初期化が正常に完了しました。");
 
     } catch (error) {
-        console.error("スプレッドシートからのデータ取得に失敗しました:", error);
-        alert("クイズデータの読み込みに失敗しました。URLやシート名が正しいか確認してください。");
+        // 初期化プロセス中にエラーが発生した場合
+        console.error("初期化プロセス中にエラーが発生しました:", error);
+        alert("データの読み込みに失敗しました。ページを再読み込みしてください。\nエラー: " + error.message);
     }
-
-    // --- その他の初期化処理 ---
-    loadExcludedSubjects();
-    loadLocalRanking();
-    updateLocalRankingList(modalRankingListElem);
-    initializeEventListeners();
-    updateRetryButtonState();
 });
 
 function initializeEventListeners() {
