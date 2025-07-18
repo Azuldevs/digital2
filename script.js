@@ -6,28 +6,22 @@ const SPREADSHEET_URL = "https://script.google.com/macros/s/AKfycbx6BbHepIwv_JCC
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
 // ★ 定数設定 (自分の情報に書き換える)          ★
 // ★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★★
+// もう一度、Firebaseコンソールからコピーした設定情報が
+// 正確に貼り付けられているか、ご確認ください。
 const firebaseConfig = {
-  // あなたが貼り付けてくれた情報を元にしています
   apiKey: "AIzaSyCHeaclJ4ItmRYnhny8Y7kLv7vKvG0wSNA",
   authDomain: "amebroll.firebaseapp.com",
+  databaseURL: "https://amebroll-default-rtdb.firebaseio.com",
   projectId: "amebroll",
   storageBucket: "amebroll.appspot.com",
   messagingSenderId: "624230250836",
-  appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1",
-
-  // ▼▼▼【重要】この行を追加してください！▼▼▼
-  databaseURL: "https://amebroll-default-rtdb.firebaseio.com" // ← ステップ1で調べたURLをここに書く
+  appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1"
 };
 
-// Firebaseの初期化
-firebase.initializeApp(firebaseConfig);
-const database = firebase.database();
-const auth = firebase.auth(); //
-
-// ★★★ ランキングモードから除外する教科（公平性のためコード内で固定） ★★★
-const RANKING_EXCLUDED_SUBJECTS = ["数学ⅤⅡ"];
-
-
+// === グローバル変数 ===
+// 初期化後に代入されるため、ここでは宣言のみ
+let database;
+let auth;
 
 // === DOM要素 ===
 const homeScreen = document.getElementById("home-screen");
@@ -59,7 +53,6 @@ const resultModal = new bootstrap.Modal(resultModalEl);
 const settingsModalEl = document.getElementById('settingsModal');
 const settingsModal = new bootstrap.Modal(settingsModalEl);
 
-
 // === 状態変数 ===
 let quizData = [];
 let filteredQuiz = [];
@@ -71,18 +64,18 @@ const TIME_LIMIT = 30;
 let answered = false;
 let localRankingData = [];
 let incorrectQuestions = [];
-let excludedSubjects = []; // お任せモード用の除外教科
+let excludedSubjects = [];
 let isRankingMode = false;
 let isRetryMode = false;
 
-
 // === 定数 ===
 const difficultyClasses = { "易しい": "bg-success", "普通": "bg-warning text-dark", "難しい": "bg-danger" };
+const RANKING_EXCLUDED_SUBJECTS = ["数学ⅤⅡ"];
 
 
 // === 初期化処理 ===
 document.addEventListener('DOMContentLoaded', async () => {
-    // 全ての操作ボタンを一旦無効化
+    // ボタンを初期状態で無効化
     startBtn.disabled = true;
     randomBtn.disabled = true;
     rankingModeBtn.disabled = true;
@@ -90,51 +83,50 @@ document.addEventListener('DOMContentLoaded', async () => {
     settingsBtn.disabled = true;
 
     try {
-        // --- ステップ1: Firebase匿名認証 ---
-        const auth = firebase.auth();
-        await auth.signInAnonymously();
-        console.log("Firebase匿名認証に成功しました。");
+        // --- ステップ1: Firebaseを初期化 ---
+        firebase.initializeApp(firebaseConfig);
+        database = firebase.database();
+        auth = firebase.auth();
+        console.log("✅ Firebaseの初期化が完了しました。");
 
-        // --- ステップ2: スプレッドシートからクイズデータを取得 ---
+        // --- ステップ2: 匿名認証でサインイン ---
+        await auth.signInAnonymously();
+        console.log("✅ Firebaseに匿名でサインインしました。");
+
+        // --- ステップ3: スプレッドシートからデータを取得 ---
         const response = await fetch(SPREADSHEET_URL);
-        if (!response.ok) {
-            throw new Error(`スプレッドシートの取得に失敗しました: ${response.status}`);
-        }
+        if (!response.ok) throw new Error(`スプレッドシートの取得に失敗: ${response.status}`);
         const data = await response.json();
-        if (data.error) {
-            throw new Error(data.error);
-        }
+        if (data.error) throw new Error(data.error);
         quizData = data;
         populateSubjects();
-        console.log("クイズデータをスプレッドシートから取得しました:", quizData);
+        console.log("✅ クイズデータをスプレッドシートから取得しました。");
 
-        // --- ステップ3: 全ての初期化処理を実行 ---
-        // Firebaseランキングの読み込み
-        updateFirebaseRankingList();
-        
-        // ローカルデータの読み込みとイベントリスナの設定
+        // --- ステップ4: その他のデータを読み込み、UIを準備 ---
         loadExcludedSubjects();
         loadLocalRanking();
         updateLocalRankingList(modalRankingListElem);
+        updateFirebaseRankingList(); // 認証後に実行
         initializeEventListeners();
         updateRetryButtonState();
 
-        // --- ステップ4: 全てのボタンを有効化 ---
+        // --- ステップ5: 全てのボタンを有効化 ---
         startBtn.disabled = false;
         randomBtn.disabled = false;
         rankingModeBtn.disabled = false;
         settingsBtn.disabled = false;
-        // 注意: retryBtnはupdateRetryButtonState()によって制御される
 
-        console.log("初期化が正常に完了しました。");
+        console.log("🚀 全ての初期化が正常に完了しました。");
 
     } catch (error) {
         // 初期化プロセス中にエラーが発生した場合
-        console.error("初期化プロセス中にエラーが発生しました:", error);
+        console.error("❌ 初期化プロセス中にエラーが発生しました:", error);
         alert("データの読み込みに失敗しました。ページを再読み込みしてください。\nエラー: " + error.message);
     }
 });
 
+
+// === イベントリスナの初期化 ===
 function initializeEventListeners() {
     startBtn.addEventListener("click", handleStart);
     randomBtn.addEventListener("click", handleRandomMode);
@@ -295,7 +287,6 @@ function showQuestion() {
     difficultyElem.className = `badge ${difficultyClasses[currentQuestion.difficulty] || "bg-secondary"}`;
     
     choicesElem.innerHTML = "";
-    // 選択肢をシャッフル
     const shuffledChoices = shuffleArray([...currentQuestion.choices]);
     shuffledChoices.forEach(choice => {
         const btn = document.createElement("button");
