@@ -13,7 +13,7 @@ const firebaseConfig = {
     authDomain: "amebroll.firebaseapp.com",
     databaseURL: "https://amebroll-default-rtdb.firebaseio.com",
     projectId: "amebroll",
-    storageBucket: "amebroll.firebasestorage.app",
+    storageBucket: "amebroll.appspot.com",
     messagingSenderId: "624230250836",
     appId: "1:624230250836:web:1f8b31c6578c1e1c53b0c1",
     measurementId: "G-GVP190HP3G"
