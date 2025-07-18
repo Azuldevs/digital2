@@ -22,6 +22,7 @@ const firebaseConfig = {
 // Firebaseの初期化
 firebase.initializeApp(firebaseConfig);
 const database = firebase.database();
+const auth = firebase.auth(); //
 
 // ★★★ ランキングモードから除外する教科（公平性のためコード内で固定） ★★★
 const RANKING_EXCLUDED_SUBJECTS = ["数学ⅤⅡ"];
